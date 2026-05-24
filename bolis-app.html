@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0ea5e9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Bolis App</title>
+<style>
+  :root {
+    --azul: #0ea5e9;
+    --azul-dark: #0284c7;
+    --azul-light: #e0f2fe;
+    --verde: #22c55e;
+    --rojo: #ef4444;
+    --naranja: #f59e0b;
+    --gris: #f1f5f9;
+    --gris-medio: #cbd5e1;
+    --gris-texto: #64748b;
+    --negro: #0f172a;
+    --blanco: #ffffff;
+    --sombra: 0 2px 12px rgba(14,165,233,0.10);
+    --radio: 16px;
+    --radio-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--gris);
+    color: var(--negro);
+    min-height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, var(--azul-dark), var(--azul));
+    color: var(--blanco);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 16px rgba(14,165,233,0.25);
+  }
+  .header-back {
+    background: rgba(255,255,255,0.2);
+    border: none; color: white;
+    width: 36px; height: 36px; border-radius: 50%;
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .header-back:active { background: rgba(255,255,255,0.35); }
+  .header-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-icon { font-size: 22px; }
+
+  /* SYNC INDICATOR */
+  .sync-dot {
+    margin-left: auto;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--verde);
+    box-shadow: 0 0 6px var(--verde);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .sync-dot.offline { background: var(--naranja); box-shadow: 0 0 6px var(--naranja); }
+  .sync-dot.syncing {
+    background: var(--azul-light);
+    animation: parpadeo 0.8s infinite;
+  }
+  @keyframes parpadeo { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* MENÚ */
+  .menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 24px 16px;
+  }
+  .menu-card {
+    background: var(--blanco);
+    border-radius: var(--radio);
+    padding: 22px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-shadow: var(--sombra);
+    transition: transform 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .menu-card:active { transform: scale(0.96); border-color: var(--azul); }
+  .menu-card-icon { font-size: 36px; }
+  .menu-card-label { font-size: 14px; font-weight: 600; color: var(--negro); text-align: center; }
+  .menu-card-sub { font-size: 11px; color: var(--gris-texto); text-align: center; }
+  .menu-header { padding: 24px 20px 0; text-align: center; }
+  .menu-header h1 { font-size: 26px; font-weight: 800; color: var(--negro); }
+  .menu-header p { font-size: 14px; color: var(--gris-texto); margin-top: 4px; }
+
+  /* PANTALLAS */
+  .pantalla { display: none; min-height: 100dvh; flex-direction: column; }
+  .pantalla.activa { display: flex; }
+  .contenido { flex: 1; padding: 16px; overflow-y: auto; }
+
+  /* INPUTS */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--gris-texto); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field input, .field select {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid var(--gris-medio);
+    border-radius: var(--radio-sm);
+    font-size: 16px; background: var(--blanco); color: var(--negro);
+    outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--azul); }
+
+  /* BOTONES */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 20px; border-radius: var(--radio-sm);
+    font-size: 15px; font-weight: 700;
+    border: none; cursor: pointer;
+    transition: transform 0.12s, opacity 0.12s;
+    user-select: none;
+  }
+  .btn:active { transform: scale(0.96); opacity: 0.85; }
+  .btn-primario { background: var(--azul); color: white; }
+  .btn-verde { background: var(--verde); color: white; }
+  .btn-rojo { background: var(--rojo); color: white; }
+  .btn-gris { background: var(--gris-medio); color: var(--negro); }
+  .btn-full { width: 100%; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  /* PRODUCTOS */
+  .producto-item {
+    background: var(--blanco); border-radius: var(--radio);
+    padding: 14px 16px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: var(--sombra);
+  }
+  .producto-img {
+    width: 52px; height: 52px; border-radius: 12px;
+    object-fit: cover; background: var(--azul-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0; overflow: hidden;
+  }
+  .producto-img img { width: 100%; height: 100%; object-fit: cover; }
+  .producto-info { flex: 1; min-width: 0; }
+  .producto-nombre { font-size: 15px; font-weight: 700; }
+  .producto-precio { font-size: 14px; color: var(--azul); font-weight: 600; margin-top: 2px; }
+  .producto-acciones { display: flex; gap: 8px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,0.55);
+    z-index: 200; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.abierto { display: flex; }
+  .modal {
+    background: var(--blanco);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-titulo { font-size: 18px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--negro); color: white;
+    padding: 12px 22px; border-radius: 50px;
+    font-size: 14px; font-weight: 600;
+    z-index: 999; transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 48px 24px; color: var(--gris-texto); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: 24px; right: 20px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--azul); color: white;
+    font-size: 28px; border: none; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(14,165,233,0.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s; z-index: 50;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  .seccion-titulo {
+    font-size: 13px; font-weight: 700; color: var(--gris-texto);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin: 8px 0 14px;
+  }
+
+  #inputImagen { display: none; }
+  .img-preview {
+    width: 72px; height: 72px; border-radius: 14px;
+    background: var(--azul-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; cursor: pointer; overflow: hidden;
+    border: 2px dashed var(--gris-medio);
+    margin: 0 auto 16px;
+  }
+  .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* CARGANDO */
+  .spinner {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 32px; color: var(--gris-texto); font-size: 14px;
+  }
+  .spin {
+    width: 22px; height: 22px; border: 3px solid var(--gris-medio);
+    border-top-color: var(--azul); border-radius: 50%;
+    animation: girar 0.7s linear infinite;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- MENÚ PRINCIPAL -->
+<div id="pantalla-menu" class="pantalla activa">
+  <div class="header">
+    <span class="header-icon">🧊</span>
+    <span class="header-title">Bolis App</span>
+    <div class="sync-dot" id="syncDot" title="Estado de conexión"></div>
+  </div>
+  <div class="menu-header">
+    <h1>¡Listo para vender!</h1>
+    <p>Selecciona una opción</p>
+  </div>
+  <div class="menu-grid">
+    <div class="menu-card" onclick="ir('ventas')">
+      <span class="menu-card-icon">💰</span>
+      <span class="menu-card-label">Ventas</span>
+      <span class="menu-card-sub">Registrar venta</span>
+    </div>
+    <div class="menu-card" onclick="ir('hielera')">
+      <span class="menu-card-icon">🧊</span>
+      <span class="menu-card-label">Hielera</span>
+      <span class="menu-card-sub">Stock del día</span>
+    </div>
+    <div class="menu-card" onclick="ir('clientes')">
+      <span class="menu-card-icon">👥</span>
+      <span class="menu-card-label">Clientes</span>
+      <span class="menu-card-sub">Deudas y abonos</span>
+    </div>
+    <div class="menu-card" onclick="ir('historial')">
+      <span class="menu-card-icon">📋</span>
+      <span class="menu-card-label">Historial</span>
+      <span class="menu-card-sub">Todas las ventas</span>
+    </div>
+    <div class="menu-card" onclick="ir('consultas')">
+      <span class="menu-card-icon">🔍</span>
+      <span class="menu-card-label">Consultas</span>
+      <span class="menu-card-sub">Estadísticas</span>
+    </div>
+    <div class="menu-card" onclick="ir('productos')">
+      <span class="menu-card-icon">🏷️</span>
+      <span class="menu-card-label">Productos</span>
+      <span class="menu-card-sub">Catálogo</span>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTOS -->
+<div id="pantalla-productos" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">🏷️</span>
+    <span class="header-title">Productos</span>
+    <div class="sync-dot" id="syncDot2"></div>
+  </div>
+  <div class="contenido" id="lista-productos"></div>
+  <button class="fab" onclick="abrirModalProducto()">＋</button>
+</div>
+
+<!-- PLACEHOLDERS -->
+<div id="pantalla-ventas" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">💰</span>
+    <span class="header-title">Ventas</span>
+  </div>
+  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 2 — próximamente</p></div></div>
+</div>
+<div id="pantalla-hielera" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">🧊</span>
+    <span class="header-title">Hielera</span>
+  </div>
+  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 2 — próximamente</p></div></div>
+</div>
+<div id="pantalla-clientes" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">👥</span>
+    <span class="header-title">Clientes</span>
+  </div>
+  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 3 — próximamente</p></div></div>
+</div>
+<div id="pantalla-historial" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">📋</span>
+    <span class="header-title">Historial</span>
+  </div>
+  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 4 — próximamente</p></div></div>
+</div>
+<div id="pantalla-consultas" class="pantalla">
+  <div class="header">
+    <button class="header-back" onclick="ir('menu')">←</button>
+    <span class="header-icon">🔍</span>
+    <span class="header-title">Consultas</span>
+  </div>
+  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 5 — próximamente</p></div></div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal">
+    <div class="modal-titulo">
+      <span>🏷️</span>
+      <span id="modal-producto-titulo-texto">Nuevo producto</span>
+    </div>
+    <div class="img-preview" id="imgPreview" onclick="document.getElementById('inputImagen').click()">
+      <span id="imgEmoji">📷</span>
+    </div>
+    <input type="file" id="inputImagen" accept="image/*" onchange="cargarImagen(event)">
+    <div class="field">
+      <label>Nombre del sabor</label>
+      <input type="text" id="prod-nombre" placeholder="Ej: Nutella, Oreo, Coco...">
+    </div>
+    <div class="field">
+      <label>Precio ($)</label>
+      <input type="number" id="prod-precio" placeholder="0" inputmode="decimal" min="0">
+    </div>
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-producto')">Cancelar</button>
+      <button class="btn btn-primario" style="flex:2" id="btnGuardarProducto" onclick="guardarProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div class="modal-overlay" id="modal-confirmar">
+  <div class="modal">
+    <div class="modal-titulo">⚠️ Eliminar producto</div>
+    <p style="color:var(--gris-texto); margin-bottom:24px;">¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.</p>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-confirmar')">Cancelar</button>
+      <button class="btn btn-rojo" style="flex:1" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, enableIndexedDbPersistence,
+  collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── CONFIGURACIÓN FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyB5_wTJgFTwKOf_4YRuEXMPvmaYrEjEuVE",
+  authDomain: "bolis-app-7539b.firebaseapp.com",
+  projectId: "bolis-app-7539b",
+  storageBucket: "bolis-app-7539b.firebasestorage.app",
+  messagingSenderId: "905065866276",
+  appId: "1:905065866276:web:1cd6306f7895492ea5a4b1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── OFFLINE PERSISTENCE ──
+enableIndexedDbPersistence(db).catch(err => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline: múltiples pestañas abiertas');
+  } else if (err.code === 'unimplemented') {
+    console.warn('Offline no soportado en este navegador');
+  }
+});
+
+// ── INDICADOR DE CONEXIÓN ──
+function setSync(estado) {
+  // estado: 'online' | 'offline' | 'syncing'
+  ['syncDot','syncDot2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'sync-dot' + (estado === 'offline' ? ' offline' : estado === 'syncing' ? ' syncing' : '');
+    el.title = estado === 'online' ? 'Conectado' : estado === 'offline' ? 'Sin internet — guardando local' : 'Sincronizando…';
+  });
+}
+window.addEventListener('online',  () => setSync('online'));
+window.addEventListener('offline', () => setSync('offline'));
+setSync(navigator.onLine ? 'online' : 'offline');
+
+// ── TOAST ──
+window.toast = function(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), ms);
+};
+
+// ── NAVEGACIÓN ──
+window.ir = function(pantalla) {
+  document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+  document.getElementById('pantalla-' + pantalla).classList.add('activa');
+  if (pantalla === 'productos') cargarProductos();
+};
+
+// ── MODALES ──
+window.cerrarModal = function(id) {
+  document.getElementById(id).classList.remove('abierto');
+};
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('abierto'); });
+});
+
+// ══════════════════════════════════════
+//  PRODUCTOS
+// ══════════════════════════════════════
+let imagenBase64 = null;
+let productoEditandoId = null;
+let productoEliminandoId = null;
+let productosCache = [];
+
+window.abrirModalProducto = function(prod = null) {
+  imagenBase64 = null;
+  productoEditandoId = prod ? prod.id : null;
+
+  document.getElementById('prod-nombre').value = prod ? prod.nombre : '';
+  document.getElementById('prod-precio').value = prod ? prod.precio : '';
+  document.getElementById('modal-producto-titulo-texto').textContent = prod ? 'Editar producto' : 'Nuevo producto';
+
+  const preview = document.getElementById('imgPreview');
+  const emoji   = document.getElementById('imgEmoji');
+  const viejaImg = preview.querySelector('img');
+  if (viejaImg) viejaImg.remove();
+
+  if (prod && prod.imagen) {
+    imagenBase64 = prod.imagen;
+    emoji.style.display = 'none';
+    const img = document.createElement('img');
+    img.src = prod.imagen;
+    preview.appendChild(img);
+  } else {
+    emoji.style.display = '';
+    emoji.textContent = '📷';
+  }
+
+  document.getElementById('modal-producto').classList.add('abierto');
+  setTimeout(() => document.getElementById('prod-nombre').focus(), 300);
+};
+
+window.cargarImagen = function(e) {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+  // Comprimir imagen antes de guardar
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const imgEl = new Image();
+    imgEl.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 300;
+      let w = imgEl.width, h = imgEl.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else        { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+      imagenBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+      const preview = document.getElementById('imgPreview');
+      document.getElementById('imgEmoji').style.display = 'none';
+      const vieja = preview.querySelector('img');
+      if (vieja) vieja.remove();
+      const img = document.createElement('img');
+      img.src = imagenBase64;
+      preview.appendChild(img);
+    };
+    imgEl.src = ev.target.result;
+  };
+  reader.readAsDataURL(archivo);
+  e.target.value = '';
+};
+
+window.guardarProducto = async function() {
+  const nombre = document.getElementById('prod-nombre').value.trim();
+  const precio = parseFloat(document.getElementById('prod-precio').value);
+  const btn    = document.getElementById('btnGuardarProducto');
+
+  if (!nombre)                    { toast('⚠️ Escribe el nombre del sabor'); return; }
+  if (isNaN(precio) || precio < 0){ toast('⚠️ Precio inválido'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  setSync('syncing');
+
+  try {
+    const obj = { nombre, precio, imagen: imagenBase64 || null };
+    if (productoEditandoId) {
+      await updateDoc(doc(db, 'productos', productoEditandoId), obj);
+      toast('✅ Producto actualizado');
+    } else {
+      await addDoc(collection(db, 'productos'), obj);
+      toast('✅ Producto guardado');
+    }
+    cerrarModal('modal-producto');
+    await cargarProductos();
+  } catch(err) {
+    toast('⚠️ Error al guardar — se guardará cuando haya internet');
+    cerrarModal('modal-producto');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    setSync(navigator.onLine ? 'online' : 'offline');
+  }
+};
+
+window.pedirEliminar = function(id) {
+  productoEliminandoId = id;
+  document.getElementById('modal-confirmar').classList.add('abierto');
+};
+
+window.confirmarEliminar = async function() {
+  try {
+    await deleteDoc(doc(db, 'productos', productoEliminandoId));
+    toast('🗑️ Producto eliminado');
+  } catch(err) {
+    toast('⚠️ Error al eliminar');
+  }
+  cerrarModal('modal-confirmar');
+  await cargarProductos();
+};
+
+window.editarProducto = async function(id) {
+  const prod = productosCache.find(p => p.id === id);
+  if (prod) abrirModalProducto(prod);
+};
+
+async function cargarProductos() {
+  const lista = document.getElementById('lista-productos');
+  lista.innerHTML = '<div class="spinner"><div class="spin"></div> Cargando…</div>';
+
+  try {
+    const q = query(collection(db, 'productos'), orderBy('nombre'));
+    const snap = await getDocs(q);
+    productosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(err) {
+    // Puede venir del caché offline
+    productosCache = [];
+  }
+
+  if (productosCache.length === 0) {
+    lista.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🏷️</div>
+        <p>No hay productos todavía.<br>Toca <strong>＋</strong> para agregar el primer sabor.</p>
+      </div>`;
+    return;
+  }
+
+  lista.innerHTML = `<p class="seccion-titulo">${productosCache.length} producto${productosCache.length !== 1 ? 's' : ''} registrado${productosCache.length !== 1 ? 's' : ''}</p>`;
+
+  productosCache.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'producto-item';
+
+    const imgDiv = document.createElement('div');
+    imgDiv.className = 'producto-img';
+    if (p.imagen) {
+      const img = document.createElement('img');
+      img.src = p.imagen;
+      imgDiv.appendChild(img);
+    } else {
+      imgDiv.textContent = '🧊';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'producto-info';
+    info.innerHTML = `
+      <div class="producto-nombre">${p.nombre}</div>
+      <div class="producto-precio">$${Number(p.precio).toFixed(2)}</div>`;
+
+    const acciones = document.createElement('div');
+    acciones.className = 'producto-acciones';
+    acciones.innerHTML = `
+      <button class="btn btn-sm btn-gris" onclick="editarProducto('${p.id}')">✏️</button>
+      <button class="btn btn-sm btn-rojo" onclick="pedirEliminar('${p.id}')">🗑️</button>`;
+
+    item.appendChild(imgDiv);
+    item.appendChild(info);
+    item.appendChild(acciones);
+    lista.appendChild(item);
+  });
+}
+
+// Exponer para uso externo en otros módulos
+window._db = db;
+window._collection = collection;
+window._productosCache = () => productosCache;
+
+console.log('✅ Bolis App iniciada con Firebase');
+</script>
+</body>
+</html>
