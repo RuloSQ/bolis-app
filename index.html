@@ -210,6 +210,34 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 #inputImagen{display:none;}
 .img-preview{width:76px;height:76px;border-radius:14px;background:var(--azul-light);display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;overflow:hidden;border:2px dashed var(--gris-medio);margin:0 auto 16px;}
 .img-preview img{width:100%;height:100%;object-fit:cover;}
+/* HISTORIAL */
+.hist-summary{display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-bottom:10px;}
+.hist-count{font-size:15px;color:var(--gris-texto);font-weight:600;}
+.hist-total{font-size:18px;font-weight:800;color:var(--azul);}
+.hist-item{background:#fff;border-radius:var(--radio);margin-bottom:8px;box-shadow:var(--sombra);overflow:hidden;}
+.hist-row{padding:14px 12px;display:flex;align-items:flex-start;gap:10px;}
+.hist-info{flex:1;min-width:0;}
+.hist-nombre{font-size:17px;font-weight:700;}
+.hist-sub{font-size:13px;color:var(--gris-texto);margin-top:3px;}
+.hist-right{text-align:right;flex-shrink:0;}
+.hist-monto{font-size:16px;font-weight:800;color:var(--azul);}
+.hist-estado{font-size:13px;font-weight:700;margin-top:2px;}
+.hist-estado.pendiente{color:var(--naranja);}
+.hist-estado.pagado{color:var(--verde-dark);}
+.hist-btns{display:flex;gap:2px;flex-shrink:0;margin-top:2px;}
+.hist-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:5px;color:var(--gris-medio);line-height:1;}
+.hist-btn:active{color:var(--azul);}
+.hist-editor{background:var(--azul-light);padding:14px;border-top:2px solid #bae6fd;}
+.hist-editor-title{font-size:15px;font-weight:700;color:var(--azul-dark);margin-bottom:12px;}
+.hist-field{margin-bottom:10px;}
+.hist-field label{display:block;font-size:12px;font-weight:700;color:var(--azul-dark);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.hist-field select,.hist-field input{width:100%;padding:11px 14px;border:2px solid #bae6fd;border-radius:var(--radio-sm);font-size:16px;background:#fff;color:var(--negro);outline:none;}
+.hist-field select:focus,.hist-field input:focus{border-color:var(--azul);}
+.hist-pagado-toggle{display:flex;align-items:center;gap:10px;padding:10px 0;}
+.hist-pagado-toggle label{font-size:16px;font-weight:600;cursor:pointer;}
+.hist-editor-btns{display:flex;gap:10px;margin-top:12px;}
+.hist-cargar-mas{width:100%;padding:14px;background:transparent;border:2px solid var(--gris-medio);border-radius:var(--radio);font-size:15px;font-weight:700;color:var(--gris-texto);cursor:pointer;margin-top:8px;}
+.hist-cargar-mas:active{background:var(--gris);}
 .spinner{display:flex;align-items:center;justify-content:center;gap:10px;padding:32px;color:var(--gris-texto);font-size:15px;}
 .spin{width:24px;height:24px;border:3px solid var(--gris-medio);border-top-color:var(--azul);border-radius:50%;animation:girar .7s linear infinite;}
 @keyframes girar{to{transform:rotate(360deg)}}
@@ -299,8 +327,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 
 <!-- PLACEHOLDERS -->
 <div id="pantalla-historial" class="pantalla">
-  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">📋</span><span class="header-title">Historial</span></div>
-  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 5 — próximamente</p></div></div>
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">📋</span><span class="header-title">Historial</span><div class="sync-dot" id="syncDot5"></div></div>
+  <div class="contenido">
+    <div class="hist-summary">
+      <span class="hist-count" id="hist-count">Cargando…</span>
+      <span class="hist-total" id="hist-total"></span>
+    </div>
+    <div id="lista-historial"></div>
+    <button class="hist-cargar-mas" id="btn-cargar-mas" style="display:none" onclick="cargarMasHistorial()">Cargar más registros…</button>
+  </div>
 </div>
 <div id="pantalla-consultas" class="pantalla">
   <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🔍</span><span class="header-title">Consultas</span></div>
@@ -405,6 +440,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-eliminar-historial">
+  <div class="modal">
+    <div class="modal-titulo">⚠️ Eliminar registro</div>
+    <p style="color:var(--gris-texto);margin-bottom:24px;font-size:16px;">¿Seguro que quieres eliminar este registro? Se ajustarán los saldos del cliente automáticamente.</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-eliminar-historial')">Cancelar</button>
+      <button class="btn btn-rojo" style="flex:1" onclick="confirmarEliminarHistorial()">Eliminar</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -412,7 +457,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore, enableIndexedDbPersistence,
   collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc,
-  query, orderBy, writeBatch, where, serverTimestamp
+  query, orderBy, writeBatch, where, serverTimestamp, limit, startAfter
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -428,7 +473,7 @@ const db=getFirestore(app);
 enableIndexedDbPersistence(db).catch(()=>{});
 
 // ── SYNC ──
-const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4'];
+const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4','syncDot5'];
 function setSync(e){
   SYNC_IDS.forEach(id=>{const el=document.getElementById(id);if(!el)return;
     el.className='sync-dot'+(e==='offline'?' offline':e==='syncing'?' syncing':'');});
@@ -452,6 +497,7 @@ window.ir=function(pantalla){
   if(pantalla==='hielera')cargarHielera();
   if(pantalla==='clientes')cargarClientes();
   if(pantalla==='ventas')iniciarVentas();
+  if(pantalla==='historial')cargarHistorial();
 };
 
 let _destinoSalirVentas='menu';
@@ -1024,6 +1070,270 @@ window.cerrarVenta=async function(){
   }finally{
     setSync(navigator.onLine?'online':'offline');
   }
+};
+
+// ══════════════════════════════════════
+//  HISTORIAL
+// ══════════════════════════════════════
+let historialCache=[];
+let historialEditandoId=null;
+let historialEliminandoId=null;
+let historialLastDoc=null;
+const HIST_PAGE=80;
+
+async function cargarHistorial(reiniciar=true){
+  const lista=document.getElementById('lista-historial');
+  const btnMas=document.getElementById('btn-cargar-mas');
+  if(reiniciar){
+    historialCache=[];historialLastDoc=null;
+    lista.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
+  }
+  // Asegurar productos y clientes en caché
+  if(productosCache.length===0){try{const q=query(collection(db,'productos'),orderBy('nombre'));const s=await getDocs(q);productosCache=s.docs.map(d=>({id:d.id,...d.data()}));}catch(e){}}
+  if(clientesCache.length===0){try{const s=await getDocs(collection(db,'clientes'));clientesCache=s.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);}catch(e){}}
+  try{
+    let q;
+    if(historialLastDoc){
+      q=query(collection(db,'historial'),orderBy('fecha','desc'),startAfter(historialLastDoc),limit(HIST_PAGE));
+    }else{
+      q=query(collection(db,'historial'),orderBy('fecha','desc'),limit(HIST_PAGE));
+    }
+    const snap=await getDocs(q);
+    const nuevos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    historialCache=[...historialCache,...nuevos];
+    historialLastDoc=snap.docs.length===HIST_PAGE?snap.docs[snap.docs.length-1]:null;
+    if(btnMas)btnMas.style.display=historialLastDoc?'':'none';
+  }catch(e){console.error(e);}
+  renderHistorial();
+}
+
+window.cargarMasHistorial=function(){cargarHistorial(false);};
+
+function renderHistorial(){
+  const lista=document.getElementById('lista-historial');
+  const countEl=document.getElementById('hist-count');
+  const totalEl=document.getElementById('hist-total');
+  if(!lista)return;
+  const total=historialCache.reduce((s,h)=>s+h.monto,0);
+  if(countEl)countEl.textContent=`${historialCache.length} registros`;
+  if(totalEl)totalEl.textContent=`Total: $${total.toFixed(2)}`;
+  lista.innerHTML='';
+  historialCache.forEach(h=>{
+    const item=document.createElement('div');item.className='hist-item';item.id='hist-item-'+h.id;
+    const fecha=new Date(h.fecha);
+    const fechaStr=fecha.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'2-digit'})+', '+fecha.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    const sub=h.esPrestamo?`Préstamo · ${fechaStr}`:`${h.nombreProducto} · x${h.cantidad} · ${fechaStr}`;
+    const estadoClass=h.pagado?'pagado':'pendiente';
+    const estadoText=h.pagado?'Pagado':'Pendiente';
+    const row=document.createElement('div');row.className='hist-row';
+    row.innerHTML=`
+      <div class="hist-info">
+        <div class="hist-nombre">${h.nombreCliente}</div>
+        <div class="hist-sub">${sub}</div>
+      </div>
+      <div class="hist-right">
+        <div class="hist-monto">$${h.monto.toFixed(2)}</div>
+        <div class="hist-estado ${estadoClass}">${estadoText}</div>
+      </div>
+      <div class="hist-btns">
+        <button class="hist-btn" onclick="toggleEditorHistorial('${h.id}')" title="Editar">✏️</button>
+        <button class="hist-btn" onclick="pedirEliminarHistorial('${h.id}')" title="Eliminar">🗑️</button>
+      </div>`;
+    item.appendChild(row);
+    // Editor (oculto por defecto)
+    if(historialEditandoId===h.id){
+      item.appendChild(crearEditorHistorial(h));
+    }
+    lista.appendChild(item);
+  });
+}
+
+function crearEditorHistorial(h){
+  const editor=document.createElement('div');editor.className='hist-editor';
+  // Opciones de productos
+  let prodOpts='';
+  if(!h.esPrestamo){
+    prodOpts=productosCache.map(p=>`<option value="${p.id}" ${p.id===h.idProducto?'selected':''}>${p.nombre} ($${p.precio})</option>`).join('');
+  }
+  // Opciones de clientes (todos + ocasional)
+  const todosClientes=[{id:'ocasional',nombre:'Cliente Ocasional'},...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const clienteOpts=todosClientes.map(c=>`<option value="${c.id}" ${c.id===h.idCliente?'selected':''}>${c.nombre}</option>`).join('');
+  editor.innerHTML=`
+    <div class="hist-editor-title">✏️ Editar registro</div>
+    ${!h.esPrestamo?`<div class="hist-field"><label>Sabor</label><select id="edit-prod-${h.id}">${prodOpts}</select></div>`:''}
+    <div class="hist-field"><label>Cliente</label><select id="edit-cliente-${h.id}">${clienteOpts}</select></div>
+    <div class="hist-field"><label>Precio unitario ($)</label><input type="number" id="edit-precio-${h.id}" value="${h.precioUnitario||h.monto}" inputmode="decimal"></div>
+    <div class="hist-pagado-toggle">
+      <input type="checkbox" id="edit-pagado-${h.id}" ${h.pagado?'checked':''} style="width:20px;height:20px;cursor:pointer;">
+      <label for="edit-pagado-${h.id}">Marcar como pagado</label>
+    </div>
+    <div class="hist-editor-btns">
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarEditorHistorial()">Cancelar</button>
+      <button class="btn btn-primario" style="flex:2" onclick="guardarEdicionHistorial('${h.id}')">✓ Guardar</button>
+    </div>`;
+  return editor;
+}
+
+window.toggleEditorHistorial=function(id){
+  historialEditandoId=(historialEditandoId===id)?null:id;
+  renderHistorial();
+  if(historialEditandoId){
+    setTimeout(()=>{const el=document.getElementById('hist-item-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  }
+};
+
+window.cerrarEditorHistorial=function(){historialEditandoId=null;renderHistorial();};
+
+window.guardarEdicionHistorial=async function(id){
+  const h=historialCache.find(x=>x.id===id);if(!h)return;
+  const nuevoProdId=h.esPrestamo?null:(document.getElementById('edit-prod-'+id)?.value||h.idProducto);
+  const nuevoClienteId=document.getElementById('edit-cliente-'+id)?.value||h.idCliente;
+  const nuevoPrecio=parseFloat(document.getElementById('edit-precio-'+id)?.value)||h.precioUnitario||h.monto;
+  const nuevoPagado=document.getElementById('edit-pagado-'+id)?.checked??h.pagado;
+  const nuevoMonto=nuevoPrecio*h.cantidad;
+
+  setSync('syncing');
+  try{
+    const batch=writeBatch(db);
+
+    // ── REVERTIR efectos del registro original ──
+    if(!h.esPrestamo||h.idCliente!=='ocasional'){
+      const oldClienteRef=doc(db,'clientes',h.idCliente);
+      const oldClienteSnap=await getDoc(oldClienteRef);
+      if(oldClienteSnap.exists()&&h.idCliente!=='ocasional'){
+        const od=oldClienteSnap.data();
+        let nc=od.consumoTotal||0, ns=od.saldo||0, na=od.totalAbonado||0;
+        nc-=h.monto;
+        if(!h.pagado)ns-=h.monto; else na-=h.monto;
+        // Si el cliente cambia, aplicar al cliente nuevo después
+        if(h.idCliente===nuevoClienteId){
+          // Mismo cliente: aplicar nuevo de una vez
+          nc+=nuevoMonto;
+          if(!nuevoPagado)ns+=nuevoMonto; else na+=nuevoMonto;
+          batch.update(oldClienteRef,{consumoTotal:Math.max(0,nc),saldo:ns,totalAbonado:Math.max(0,na)});
+          // Actualizar caché
+          const idx=clientesCache.findIndex(c=>c.id===h.idCliente);
+          if(idx>=0){clientesCache[idx].consumoTotal=Math.max(0,nc);clientesCache[idx].saldo=ns;clientesCache[idx].totalAbonado=Math.max(0,na);}
+        }else{
+          // Cliente diferente: revertir del viejo
+          batch.update(oldClienteRef,{consumoTotal:Math.max(0,nc),saldo:ns,totalAbonado:Math.max(0,na)});
+          const idxOld=clientesCache.findIndex(c=>c.id===h.idCliente);
+          if(idxOld>=0){clientesCache[idxOld].consumoTotal=Math.max(0,nc);clientesCache[idxOld].saldo=ns;clientesCache[idxOld].totalAbonado=Math.max(0,na);}
+          // Aplicar al nuevo cliente
+          if(nuevoClienteId!=='ocasional'){
+            const newClienteRef=doc(db,'clientes',nuevoClienteId);
+            const newClienteSnap=await getDoc(newClienteRef);
+            if(newClienteSnap.exists()){
+              const nd=newClienteSnap.data();
+              let nnc=(nd.consumoTotal||0)+nuevoMonto;
+              let nns=nd.saldo||0, nna=nd.totalAbonado||0;
+              if(!nuevoPagado)nns+=nuevoMonto; else nna+=nuevoMonto;
+              batch.update(newClienteRef,{consumoTotal:nnc,saldo:nns,totalAbonado:nna});
+              const idxNew=clientesCache.findIndex(c=>c.id===nuevoClienteId);
+              if(idxNew>=0){clientesCache[idxNew].consumoTotal=nnc;clientesCache[idxNew].saldo=nns;clientesCache[idxNew].totalAbonado=nna;}
+            }
+          }
+        }
+      }
+    }
+
+    // ── AJUSTAR HIELERA si cambió producto ──
+    if(!h.esPrestamo&&nuevoProdId&&nuevoProdId!==h.idProducto){
+      // Restaurar producto viejo
+      const oldHRef=doc(db,'hielera',h.idProducto);
+      const oldHSnap=await getDoc(oldHRef);
+      if(oldHSnap.exists()){
+        const od=oldHSnap.data();const nca=od.cantidadActual+h.cantidad;
+        batch.update(oldHRef,{cantidadActual:nca});
+        const idx=hieleraCache.findIndex(x=>x.idProducto===h.idProducto);if(idx>=0)hieleraCache[idx].cantidadActual=nca;
+      }
+      // Descontar producto nuevo
+      const newHRef=doc(db,'hielera',nuevoProdId);
+      const newHSnap=await getDoc(newHRef);
+      if(newHSnap.exists()){
+        const nd=newHSnap.data();const nca=Math.max(0,nd.cantidadActual-h.cantidad);
+        batch.update(newHRef,{cantidadActual:nca});
+        const idx=hieleraCache.findIndex(x=>x.idProducto===nuevoProdId);if(idx>=0)hieleraCache[idx].cantidadActual=nca;
+      }
+    }
+
+    // ── Obtener nombre del nuevo producto y cliente ──
+    let nuevoNombreProd=h.nombreProducto;
+    if(!h.esPrestamo&&nuevoProdId){
+      const pp=productosCache.find(p=>p.id===nuevoProdId);if(pp)nuevoNombreProd=pp.nombre;
+    }
+    let nuevoNombreCliente=h.nombreCliente;
+    if(nuevoClienteId==='ocasional'){nuevoNombreCliente='Cliente Ocasional';}
+    else{const cc=clientesCache.find(c=>c.id===nuevoClienteId);if(cc)nuevoNombreCliente=cc.nombre;}
+
+    // ── Actualizar documento historial ──
+    const histRef=doc(db,'historial',id);
+    const updates={
+      idCliente:nuevoClienteId,
+      nombreCliente:nuevoNombreCliente,
+      precioUnitario:nuevoPrecio,
+      monto:nuevoMonto,
+      pagado:nuevoPagado,
+    };
+    if(!h.esPrestamo&&nuevoProdId){updates.idProducto=nuevoProdId;updates.nombreProducto=nuevoNombreProd;}
+    batch.update(histRef,updates);
+
+    await batch.commit();
+
+    // Actualizar caché local del historial
+    const hIdx=historialCache.findIndex(x=>x.id===id);
+    if(hIdx>=0)Object.assign(historialCache[hIdx],updates);
+
+    historialEditandoId=null;
+    renderHistorial();
+    toast('✅ Registro actualizado');
+  }catch(err){console.error(err);toast('⚠️ Error al guardar cambios');}
+  finally{setSync(navigator.onLine?'online':'offline');}
+};
+
+window.pedirEliminarHistorial=function(id){
+  historialEliminandoId=id;
+  document.getElementById('modal-eliminar-historial').classList.add('abierto');
+};
+
+window.confirmarEliminarHistorial=async function(){
+  const h=historialCache.find(x=>x.id===historialEliminandoId);
+  if(!h){cerrarModal('modal-eliminar-historial');return;}
+  cerrarModal('modal-eliminar-historial');
+  setSync('syncing');
+  try{
+    const batch=writeBatch(db);
+    // Revertir efectos en cliente
+    if(h.idCliente!=='ocasional'){
+      const cRef=doc(db,'clientes',h.idCliente);
+      const cSnap=await getDoc(cRef);
+      if(cSnap.exists()){
+        const cd=cSnap.data();
+        let nc=(cd.consumoTotal||0)-h.monto;
+        let ns=cd.saldo||0, na=cd.totalAbonado||0;
+        if(!h.pagado)ns-=h.monto; else na-=h.monto;
+        batch.update(cRef,{consumoTotal:Math.max(0,nc),saldo:ns,totalAbonado:Math.max(0,na)});
+        const idx=clientesCache.findIndex(c=>c.id===h.idCliente);
+        if(idx>=0){clientesCache[idx].consumoTotal=Math.max(0,nc);clientesCache[idx].saldo=ns;clientesCache[idx].totalAbonado=Math.max(0,na);}
+      }
+    }
+    // Restaurar stock en hielera si aplica
+    if(!h.esPrestamo){
+      const hRef=doc(db,'hielera',h.idProducto);
+      const hSnap=await getDoc(hRef);
+      if(hSnap.exists()){
+        const hd=hSnap.data();const nca=hd.cantidadActual+h.cantidad;
+        batch.update(hRef,{cantidadActual:nca});
+        const idx=hieleraCache.findIndex(x=>x.idProducto===h.idProducto);if(idx>=0)hieleraCache[idx].cantidadActual=nca;
+      }
+    }
+    batch.delete(doc(db,'historial',historialEliminandoId));
+    await batch.commit();
+    historialCache=historialCache.filter(x=>x.id!==historialEliminandoId);
+    renderHistorial();
+    toast('🗑️ Registro eliminado');
+  }catch(err){console.error(err);toast('⚠️ Error al eliminar');}
+  finally{setSync(navigator.onLine?'online':'offline');}
 };
 
 console.log('✅ Bolis App — Módulo 4 (Ventas) listo');
