@@ -210,6 +210,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 #inputImagen{display:none;}
 .img-preview{width:76px;height:76px;border-radius:14px;background:var(--azul-light);display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;overflow:hidden;border:2px dashed var(--gris-medio);margin:0 auto 16px;}
 .img-preview img{width:100%;height:100%;object-fit:cover;}
+/* CONSULTAS */
+.cons-form{background:#fff;border-radius:var(--radio);padding:16px;margin-bottom:12px;box-shadow:var(--sombra);}
+.cons-resultado-box{background:#fff;border-radius:var(--radio);padding:16px;box-shadow:var(--sombra);}
+.cons-titulo{font-size:17px;font-weight:800;margin-bottom:14px;color:var(--negro);}
+.cons-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid var(--gris);}
+.cons-row:last-child{border-bottom:none;}
+.cons-nombre{flex:1;font-size:16px;font-weight:600;}
+.cons-pzas{font-size:15px;color:var(--gris-texto);margin-right:12px;white-space:nowrap;}
+.cons-monto{font-size:16px;font-weight:800;color:var(--azul);white-space:nowrap;}
+.cons-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:2px solid var(--gris);}
+.cons-footer-pzas{font-size:15px;font-weight:700;color:var(--gris-texto);}
+.cons-footer-total{font-size:20px;font-weight:800;color:var(--verde-dark);}
 /* HISTORIAL */
 .hist-summary{display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-bottom:10px;}
 .hist-count{font-size:15px;color:var(--gris-texto);font-weight:600;}
@@ -338,8 +350,40 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
   </div>
 </div>
 <div id="pantalla-consultas" class="pantalla">
-  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🔍</span><span class="header-title">Consultas</span></div>
-  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 6 — próximamente</p></div></div>
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🔍</span><span class="header-title">Consultas</span><div class="sync-dot" id="syncDot6"></div></div>
+  <div class="contenido">
+    <div style="font-size:22px;font-weight:800;margin-bottom:16px;">📊 Consulta</div>
+    <div class="cons-form">
+      <div class="hist-field" style="margin-bottom:12px;">
+        <label>Tipo de consulta</label>
+        <select class="ventas-select" id="cons-tipo" onchange="onConsTipoChange()">
+          <option value="general">General (todos los productos)</option>
+          <option value="cliente">Por cliente</option>
+          <option value="sabor">Por sabor</option>
+        </select>
+      </div>
+      <div class="hist-field" id="cons-campo-cliente" style="display:none;margin-bottom:12px;">
+        <label>Cliente</label>
+        <select class="ventas-select" id="cons-cliente"></select>
+      </div>
+      <div class="hist-field" id="cons-campo-sabor" style="display:none;margin-bottom:12px;">
+        <label>Sabor</label>
+        <select class="ventas-select" id="cons-sabor"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="hist-field" style="margin:0">
+          <label>Desde</label>
+          <input type="date" class="ventas-select" id="cons-desde" style="padding:12px 10px;font-size:15px;">
+        </div>
+        <div class="hist-field" style="margin:0">
+          <label>Hasta</label>
+          <input type="date" class="ventas-select" id="cons-hasta" style="padding:12px 10px;font-size:15px;">
+        </div>
+      </div>
+      <button class="btn btn-primario btn-full" onclick="ejecutarConsulta()">🔍 Consultar</button>
+    </div>
+    <div id="cons-resultados" style="margin-top:16px;"></div>
+  </div>
 </div>
 
 <!-- ═══ MODALES PRODUCTOS ═══ -->
@@ -473,7 +517,7 @@ const db=getFirestore(app);
 enableIndexedDbPersistence(db).catch(()=>{});
 
 // ── SYNC ──
-const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4','syncDot5'];
+const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4','syncDot5','syncDot6'];
 function setSync(e){
   SYNC_IDS.forEach(id=>{const el=document.getElementById(id);if(!el)return;
     el.className='sync-dot'+(e==='offline'?' offline':e==='syncing'?' syncing':'');});
@@ -498,6 +542,7 @@ window.ir=function(pantalla){
   if(pantalla==='clientes')cargarClientes();
   if(pantalla==='ventas')iniciarVentas();
   if(pantalla==='historial')cargarHistorial();
+  if(pantalla==='consultas')iniciarConsultas();
 };
 
 let _destinoSalirVentas='menu';
@@ -1334,6 +1379,120 @@ window.confirmarEliminarHistorial=async function(){
     toast('🗑️ Registro eliminado');
   }catch(err){console.error(err);toast('⚠️ Error al eliminar');}
   finally{setSync(navigator.onLine?'online':'offline');}
+};
+
+// ══════════════════════════════════════
+//  CONSULTAS
+// ══════════════════════════════════════
+function iniciarConsultas(){
+  // Fechas por defecto: últimos 7 días
+  const hoy=new Date();
+  const hace7=new Date();hace7.setDate(hoy.getDate()-7);
+  const fmt=d=>d.toISOString().split('T')[0];
+  const desdeEl=document.getElementById('cons-desde');
+  const hastaEl=document.getElementById('cons-hasta');
+  if(desdeEl&&!desdeEl.value)desdeEl.value=fmt(hace7);
+  if(hastaEl&&!hastaEl.value)hastaEl.value=fmt(hoy);
+  // Poblar clientes
+  const selC=document.getElementById('cons-cliente');
+  if(selC&&selC.options.length<=1){
+    selC.innerHTML='';
+    const ordenados=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    ordenados.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;selC.appendChild(o);});
+  }
+  // Poblar sabores
+  const selS=document.getElementById('cons-sabor');
+  if(selS&&selS.options.length<=1){
+    selS.innerHTML='';
+    if(productosCache.length===0){/* se cargará después */}
+    productosCache.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.nombre;selS.appendChild(o);});
+  }
+}
+
+window.onConsTipoChange=function(){
+  const tipo=document.getElementById('cons-tipo')?.value;
+  document.getElementById('cons-campo-cliente').style.display=tipo==='cliente'?'block':'none';
+  document.getElementById('cons-campo-sabor').style.display=tipo==='sabor'?'block':'none';
+  document.getElementById('cons-resultados').innerHTML='';
+};
+
+window.ejecutarConsulta=async function(){
+  const tipo=document.getElementById('cons-tipo')?.value||'general';
+  const desdeStr=document.getElementById('cons-desde')?.value;
+  const hastaStr=document.getElementById('cons-hasta')?.value;
+  if(!desdeStr||!hastaStr){toast('⚠️ Selecciona el rango de fechas');return;}
+  const desde=new Date(desdeStr+'T00:00:00').toISOString();
+  const hasta=new Date(hastaStr+'T23:59:59').toISOString();
+  const resultados=document.getElementById('cons-resultados');
+  resultados.innerHTML='<div class="spinner"><div class="spin"></div> Consultando…</div>';
+  setSync('syncing');
+  try{
+    // Traer registros del rango (excluir préstamos)
+    const q=query(collection(db,'historial'),where('fecha','>=',desde),where('fecha','<=',hasta));
+    const snap=await getDocs(q);
+    let registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
+
+    if(tipo==='general'){
+      // Agrupar por producto
+      const mapa={};
+      registros.forEach(r=>{
+        if(!mapa[r.nombreProducto])mapa[r.nombreProducto]={nombre:r.nombreProducto,cantidad:0,monto:0};
+        mapa[r.nombreProducto].cantidad+=r.cantidad;
+        mapa[r.nombreProducto].monto+=r.monto;
+      });
+      const lista=Object.values(mapa).sort((a,b)=>b.cantidad-a.cantidad);
+      const totalPzas=lista.reduce((s,x)=>s+x.cantidad,0);
+      const totalMonto=lista.reduce((s,x)=>s+x.monto,0);
+      if(lista.length===0){resultados.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>Sin resultados en ese período.</p></div>';return;}
+      let html=`<div class="cons-resultado-box"><div class="cons-titulo">Resumen general del período</div>`;
+      lista.forEach(x=>{html+=`<div class="cons-row"><span class="cons-nombre">${x.nombre}</span><span class="cons-pzas">${x.cantidad} pzas</span><span class="cons-monto">$${x.monto.toFixed(2)}</span></div>`;});
+      html+=`<div class="cons-footer"><span class="cons-footer-pzas">Total piezas: ${totalPzas}</span><span class="cons-footer-total">Total: $${totalMonto.toFixed(2)}</span></div></div>`;
+      resultados.innerHTML=html;
+    }
+    else if(tipo==='sabor'){
+      const idSabor=document.getElementById('cons-sabor')?.value;
+      const nombreSabor=productosCache.find(p=>p.id===idSabor)?.nombre||idSabor;
+      const filtrados=registros.filter(r=>r.idProducto===idSabor);
+      // Agrupar por cliente
+      const mapa={};
+      filtrados.forEach(r=>{
+        if(!mapa[r.nombreCliente])mapa[r.nombreCliente]={nombre:r.nombreCliente,cantidad:0,monto:0};
+        mapa[r.nombreCliente].cantidad+=r.cantidad;
+        mapa[r.nombreCliente].monto+=r.monto;
+      });
+      const lista=Object.values(mapa).sort((a,b)=>b.cantidad-a.cantidad);
+      const totalMonto=lista.reduce((s,x)=>s+x.monto,0);
+      if(lista.length===0){resultados.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>Sin ventas de ese sabor en el período.</p></div>';return;}
+      let html=`<div class="cons-resultado-box"><div class="cons-titulo">Ventas de: ${nombreSabor}</div>`;
+      lista.forEach(x=>{html+=`<div class="cons-row"><span class="cons-nombre">${x.nombre}</span><span class="cons-pzas">${x.cantidad} pzas</span><span class="cons-monto">$${x.monto.toFixed(2)}</span></div>`;});
+      html+=`<div class="cons-footer"><span></span><span class="cons-footer-total">Total: $${totalMonto.toFixed(2)}</span></div></div>`;
+      resultados.innerHTML=html;
+    }
+    else if(tipo==='cliente'){
+      const idCliente=document.getElementById('cons-cliente')?.value;
+      const nombreCliente=clientesCache.find(c=>c.id===idCliente)?.nombre||idCliente;
+      const filtrados=registros.filter(r=>r.idCliente===idCliente);
+      // Agrupar por producto
+      const mapa={};
+      filtrados.forEach(r=>{
+        if(!mapa[r.nombreProducto])mapa[r.nombreProducto]={nombre:r.nombreProducto,cantidad:0,monto:0};
+        mapa[r.nombreProducto].cantidad+=r.cantidad;
+        mapa[r.nombreProducto].monto+=r.monto;
+      });
+      const lista=Object.values(mapa).sort((a,b)=>b.cantidad-a.cantidad);
+      const totalMonto=lista.reduce((s,x)=>s+x.monto,0);
+      if(lista.length===0){resultados.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><p>Sin compras de ese cliente en el período.</p></div>';return;}
+      let html=`<div class="cons-resultado-box"><div class="cons-titulo">Consumo de: ${nombreCliente}</div>`;
+      lista.forEach(x=>{html+=`<div class="cons-row"><span class="cons-nombre">${x.nombre}</span><span class="cons-pzas">${x.cantidad} pzas</span><span class="cons-monto">$${x.monto.toFixed(2)}</span></div>`;});
+      html+=`<div class="cons-footer"><span></span><span class="cons-footer-total">Total: $${totalMonto.toFixed(2)}</span></div></div>`;
+      resultados.innerHTML=html;
+    }
+  }catch(err){
+    console.error(err);
+    resultados.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Error al consultar. Verifica tu conexión.</p></div>';
+  }finally{
+    setSync(navigator.onLine?'online':'offline');
+  }
 };
 
 console.log('✅ Bolis App — Módulo 4 (Ventas) listo');
