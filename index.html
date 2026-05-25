@@ -1384,7 +1384,7 @@ window.confirmarEliminarHistorial=async function(){
 // ══════════════════════════════════════
 //  CONSULTAS
 // ══════════════════════════════════════
-function iniciarConsultas(){
+async function iniciarConsultas(){
   // Fechas por defecto: últimos 7 días
   const hoy=new Date();
   const hace7=new Date();hace7.setDate(hoy.getDate()-7);
@@ -1393,18 +1393,35 @@ function iniciarConsultas(){
   const hastaEl=document.getElementById('cons-hasta');
   if(desdeEl&&!desdeEl.value)desdeEl.value=fmt(hace7);
   if(hastaEl&&!hastaEl.value)hastaEl.value=fmt(hoy);
+
+  // Cargar clientes si caché vacío
+  if(clientesCache.length===0){
+    try{
+      await asegurarClienteOcasional();
+      const snap=await getDocs(collection(db,'clientes'));
+      clientesCache=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);
+    }catch(e){}
+  }
+  // Cargar productos si caché vacío
+  if(productosCache.length===0){
+    try{
+      const q=query(collection(db,'productos'),orderBy('nombre'));
+      const snap=await getDocs(q);
+      productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){}
+  }
+
   // Poblar clientes
   const selC=document.getElementById('cons-cliente');
-  if(selC&&selC.options.length<=1){
+  if(selC){
     selC.innerHTML='';
     const ordenados=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
     ordenados.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;selC.appendChild(o);});
   }
   // Poblar sabores
   const selS=document.getElementById('cons-sabor');
-  if(selS&&selS.options.length<=1){
+  if(selS){
     selS.innerHTML='';
-    if(productosCache.length===0){/* se cargará después */}
     productosCache.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.nombre;selS.appendChild(o);});
   }
 }
