@@ -11,7 +11,7 @@
   --azul:#0ea5e9; --azul-dark:#0284c7; --azul-light:#e0f2fe;
   --verde:#22c55e; --verde-dark:#16a34a; --verde-light:#dcfce7;
   --rojo:#ef4444; --rojo-dark:#dc2626; --rojo-light:#fee2e2;
-  --naranja:#f59e0b;
+  --naranja:#f59e0b; --naranja-light:#fef3c7;
   --gris:#f1f5f9; --gris-medio:#cbd5e1; --gris-texto:#64748b;
   --negro:#0f172a; --blanco:#ffffff;
   --sombra:0 2px 12px rgba(14,165,233,0.10);
@@ -61,6 +61,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .btn-verde{background:var(--verde);color:#fff;}
 .btn-rojo{background:var(--rojo);color:#fff;}
 .btn-rojo-outline{background:transparent;color:var(--rojo);border:2px solid var(--rojo);}
+.btn-naranja{background:var(--naranja);color:#fff;}
 .btn-gris{background:var(--gris-medio);color:var(--negro);}
 .btn-full{width:100%;}
 .btn-sm{padding:9px 14px;font-size:14px;}
@@ -115,7 +116,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .reporte-total-label{font-size:18px;font-weight:700;color:var(--azul-dark);}
 .reporte-total-monto{font-size:32px;font-weight:800;color:var(--azul-dark);}
 
-/* CLIENTES lista */
+/* CLIENTES */
 .clientes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .clientes-header-titulo{font-size:22px;font-weight:800;}
 .cliente-item{background:#fff;border-radius:var(--radio);padding:16px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:var(--sombra);cursor:pointer;transition:transform .12s;}
@@ -126,8 +127,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .badge-corriente{background:transparent;color:var(--gris-texto);font-weight:600;}
 .badge-favor{background:var(--verde);color:#fff;}
 .cliente-chevron{color:var(--gris-medio);font-size:18px;}
-
-/* DETALLE CLIENTE modal stats */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
 .stat-box{background:var(--gris);border-radius:var(--radio-sm);padding:14px;}
 .stat-label{font-size:13px;color:var(--gris-texto);font-weight:600;margin-bottom:4px;}
@@ -135,12 +134,52 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .stat-sub{font-size:12px;color:var(--gris-texto);margin-top:2px;}
 .stat-rojo{color:var(--rojo);}
 .stat-verde{color:var(--verde-dark);}
-
 .eliminar-link{display:flex;align-items:center;gap:6px;color:var(--rojo);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:18px;width:fit-content;}
 .abono-row{display:flex;gap:10px;margin-top:8px;}
 .abono-input{flex:1;padding:14px 16px;border:2px solid var(--gris-medio);border-radius:var(--radio-sm);font-size:18px;color:var(--negro);background:#fff;outline:none;}
 .abono-input:focus{border-color:var(--verde);}
 .abono-seccion-label{font-size:16px;font-weight:700;margin-bottom:8px;}
+
+/* ═══ VENTAS ═══ */
+.ventas-contenido{flex:1;padding:16px;overflow-y:auto;padding-bottom:90px;}
+.ventas-seccion{background:#fff;border-radius:var(--radio);padding:16px;margin-bottom:12px;box-shadow:var(--sombra);}
+.ventas-label{font-size:13px;font-weight:700;color:var(--gris-texto);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.ventas-cliente-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ventas-fiado-badge{font-size:13px;color:var(--gris-texto);display:flex;align-items:center;gap:4px;}
+.ventas-select{width:100%;padding:14px 16px;border:2px solid var(--gris-medio);border-radius:var(--radio-sm);font-size:17px;background:#fff;color:var(--negro);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%2364748b' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.ventas-select:focus{border-color:var(--azul);}
+.prestamo-row{display:flex;gap:10px;}
+.prestamo-input{flex:1;padding:14px 16px;border:2px solid var(--gris-medio);border-radius:var(--radio-sm);font-size:17px;color:var(--negro);background:#fff;outline:none;}
+.prestamo-input:focus{border-color:var(--naranja);}
+/* GRID PRODUCTOS VENTAS */
+.venta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.venta-prod-card{background:var(--gris);border-radius:var(--radio-sm);padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;border:2px solid transparent;transition:transform .1s,border-color .1s;user-select:none;position:relative;}
+.venta-prod-card:active{transform:scale(.94);border-color:var(--azul);}
+.venta-prod-card.bloqueado{opacity:.4;pointer-events:none;}
+.venta-prod-img{width:52px;height:52px;border-radius:10px;background:var(--azul-light);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;}
+.venta-prod-img img{width:100%;height:100%;object-fit:cover;}
+.venta-prod-nombre{font-size:12px;font-weight:700;text-align:center;line-height:1.2;}
+.venta-prod-precio{font-size:13px;color:var(--azul);font-weight:800;}
+.venta-prod-stock{font-size:12px;color:var(--gris-texto);}
+.venta-prod-badge{position:absolute;top:4px;right:4px;background:var(--azul);color:#fff;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+/* CARRITO */
+.carrito-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.carrito-titulo{font-size:15px;font-weight:700;color:var(--gris-texto);flex:1;}
+.carrito-item{background:#fff;border-radius:var(--radio-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border:2px solid transparent;box-shadow:var(--sombra);}
+.carrito-item.pagado{border-color:var(--verde);background:var(--verde-light);}
+.carrito-checkbox{width:22px;height:22px;border-radius:6px;border:2px solid var(--gris-medio);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .15s,border-color .15s;}
+.carrito-checkbox.checked{background:var(--verde);border-color:var(--verde);color:#fff;}
+.carrito-info{flex:1;min-width:0;}
+.carrito-nombre{font-size:16px;font-weight:700;}
+.carrito-sub{font-size:13px;color:var(--gris-texto);margin-top:2px;}
+.carrito-monto{font-size:17px;font-weight:800;color:var(--negro);white-space:nowrap;}
+.carrito-del{background:none;border:none;color:var(--gris-medio);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;}
+.carrito-del:active{color:var(--rojo);}
+.carrito-vacio{text-align:center;padding:24px;color:var(--gris-texto);font-size:15px;}
+/* BARRA TOTAL */
+.ventas-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--gris);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:90;box-shadow:0 -2px 12px rgba(0,0,0,0.08);}
+.ventas-total-label{font-size:16px;color:var(--gris-texto);font-weight:600;}
+.ventas-total-monto{font-size:26px;font-weight:800;color:var(--azul);}
 
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:200;align-items:flex-end;justify-content:center;}
@@ -176,11 +215,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 
 <!-- ═══ MENÚ ═══ -->
 <div id="pantalla-menu" class="pantalla activa">
-  <div class="header">
-    <span class="header-icon">🧊</span>
-    <span class="header-title">Bolis App</span>
-    <div class="sync-dot" id="syncDot"></div>
-  </div>
+  <div class="header"><span class="header-icon">🧊</span><span class="header-title">Bolis App</span><div class="sync-dot" id="syncDot"></div></div>
   <div class="menu-header"><h1>¡Listo para vender!</h1><p>Selecciona una opción</p></div>
   <div class="menu-grid">
     <div class="menu-card" onclick="ir('ventas')"><span class="menu-card-icon">💰</span><span class="menu-card-label">Ventas</span><span class="menu-card-sub">Registrar venta</span></div>
@@ -192,48 +227,73 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
   </div>
 </div>
 
+<!-- ═══ VENTAS ═══ -->
+<div id="pantalla-ventas" class="pantalla">
+  <div class="header"><button class="header-back" onclick="irMenuDesdeVentas()">←</button><span class="header-icon">💰</span><span class="header-title">Ventas</span><div class="sync-dot" id="syncDotV"></div></div>
+  <div class="ventas-contenido">
+    <!-- Cliente -->
+    <div class="ventas-seccion">
+      <div class="ventas-cliente-row">
+        <span class="ventas-label">Cliente</span>
+        <span class="ventas-fiado-badge">⚙️ Fiado (sin pago)</span>
+      </div>
+      <select class="ventas-select" id="ventas-cliente-select" onchange="onClienteChange()">
+        <option value="">Selecciona un cliente...</option>
+      </select>
+    </div>
+    <!-- Préstamo -->
+    <div class="ventas-seccion">
+      <div class="ventas-label">🤝 Préstamo</div>
+      <div class="prestamo-row">
+        <input type="number" class="prestamo-input" id="prestamo-input" placeholder="Monto del préstamo..." inputmode="decimal" min="0">
+        <button class="btn btn-naranja" onclick="agregarPrestamo()">Agregar</button>
+      </div>
+    </div>
+    <!-- Sabores -->
+    <div class="ventas-seccion">
+      <div class="ventas-label">Selecciona un sabor</div>
+      <div class="venta-grid" id="venta-grid"></div>
+    </div>
+    <!-- Carrito -->
+    <div class="ventas-seccion" id="carrito-seccion">
+      <div class="carrito-header">
+        <span class="carrito-titulo" id="carrito-titulo">Carrito (0 líneas)</span>
+        <button class="btn btn-rojo btn-sm" id="btn-cancelar1" onclick="cancelarUltimo()" style="display:none">✕ Cancelar 1</button>
+        <button class="btn btn-sm" id="btn-todo-pagado" onclick="todoPagado()" style="background:var(--verde-light);color:var(--verde-dark);display:none">✓ Todo pagado</button>
+      </div>
+      <div id="carrito-lista"><div class="carrito-vacio">El carrito está vacío</div></div>
+    </div>
+  </div>
+  <!-- Barra total -->
+  <div class="ventas-bar">
+    <div><div class="ventas-total-label">Total</div><div class="ventas-total-monto" id="ventas-total">$0.00</div></div>
+    <button class="btn btn-verde" id="btn-cerrar-venta" onclick="cerrarVenta()" disabled>Cerrar Venta</button>
+  </div>
+</div>
+
 <!-- ═══ PRODUCTOS ═══ -->
 <div id="pantalla-productos" class="pantalla">
-  <div class="header">
-    <button class="header-back" onclick="ir('menu')">←</button>
-    <span class="header-icon">🏷️</span><span class="header-title">Productos</span>
-    <div class="sync-dot" id="syncDot2"></div>
-  </div>
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🏷️</span><span class="header-title">Productos</span><div class="sync-dot" id="syncDot2"></div></div>
   <div class="contenido" id="lista-productos"></div>
   <button class="fab" onclick="abrirModalProducto()">＋</button>
 </div>
 
 <!-- ═══ HIELERA ═══ -->
 <div id="pantalla-hielera" class="pantalla">
-  <div class="header">
-    <button class="header-back" onclick="ir('menu')">←</button>
-    <span class="header-icon">🧊</span><span class="header-title">Hielera</span>
-    <div class="sync-dot" id="syncDot3"></div>
-  </div>
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🧊</span><span class="header-title">Hielera</span><div class="sync-dot" id="syncDot3"></div></div>
   <div class="contenido" id="contenido-hielera"></div>
 </div>
 
 <!-- ═══ CLIENTES ═══ -->
 <div id="pantalla-clientes" class="pantalla">
-  <div class="header">
-    <button class="header-back" onclick="ir('menu')">←</button>
-    <span class="header-icon">👥</span><span class="header-title">Clientes</span>
-    <div class="sync-dot" id="syncDot4"></div>
-  </div>
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">👥</span><span class="header-title">Clientes</span><div class="sync-dot" id="syncDot4"></div></div>
   <div class="contenido">
-    <div class="clientes-header">
-      <span class="clientes-header-titulo">Clientes</span>
-      <button class="btn btn-primario btn-sm" onclick="abrirModalNuevoCliente()">👤 Agregar</button>
-    </div>
+    <div class="clientes-header"><span class="clientes-header-titulo">Clientes</span><button class="btn btn-primario btn-sm" onclick="abrirModalNuevoCliente()">👤 Agregar</button></div>
     <div id="lista-clientes"></div>
   </div>
 </div>
 
 <!-- PLACEHOLDERS -->
-<div id="pantalla-ventas" class="pantalla">
-  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">💰</span><span class="header-title">Ventas</span></div>
-  <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 4 — próximamente</p></div></div>
-</div>
 <div id="pantalla-historial" class="pantalla">
   <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">📋</span><span class="header-title">Historial</span></div>
   <div class="contenido"><div class="empty"><div class="empty-icon">🚧</div><p>Módulo 5 — próximamente</p></div></div>
@@ -301,31 +361,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     </div>
   </div>
 </div>
-
 <div class="modal-overlay" id="modal-detalle-cliente">
   <div class="modal">
-    <div class="modal-titulo">
-      <span id="detalle-nombre">Cliente</span>
-      <button class="modal-close" onclick="cerrarModal('modal-detalle-cliente')">✕</button>
-    </div>
+    <div class="modal-titulo"><span id="detalle-nombre">Cliente</span><button class="modal-close" onclick="cerrarModal('modal-detalle-cliente')">✕</button></div>
     <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-label">Consumo Total</div>
-        <div class="stat-valor" id="det-consumo">$0.00</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Total Abonado</div>
-        <div class="stat-valor" id="det-abonado">$0.00</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Último Abono</div>
-        <div class="stat-valor" id="det-ultimo-monto">—</div>
-        <div class="stat-sub" id="det-ultimo-fecha"></div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Saldo</div>
-        <div class="stat-valor" id="det-saldo">$0.00</div>
-      </div>
+      <div class="stat-box"><div class="stat-label">Consumo Total</div><div class="stat-valor" id="det-consumo">$0.00</div></div>
+      <div class="stat-box"><div class="stat-label">Total Abonado</div><div class="stat-valor" id="det-abonado">$0.00</div></div>
+      <div class="stat-box"><div class="stat-label">Último Abono</div><div class="stat-valor" id="det-ultimo-monto">—</div><div class="stat-sub" id="det-ultimo-fecha"></div></div>
+      <div class="stat-box"><div class="stat-label">Saldo</div><div class="stat-valor" id="det-saldo">$0.00</div></div>
     </div>
     <div class="eliminar-link" onclick="pedirEliminarCliente()">🗑️ Eliminar cliente</div>
     <div class="abono-seccion-label">Registrar Abono</div>
@@ -335,14 +378,25 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     </div>
   </div>
 </div>
-
 <div class="modal-overlay" id="modal-confirmar-cliente">
   <div class="modal">
     <div class="modal-titulo">⚠️ Eliminar cliente</div>
-    <p style="color:var(--gris-texto);margin-bottom:24px;font-size:16px;">¿Seguro que quieres eliminar a <strong id="eliminar-cliente-nombre"></strong>? Sus abonos también serán eliminados.</p>
+    <p style="color:var(--gris-texto);margin-bottom:24px;font-size:16px;">¿Seguro que quieres eliminar a <strong id="eliminar-cliente-nombre"></strong>?</p>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-confirmar-cliente')">Cancelar</button>
       <button class="btn btn-rojo" style="flex:1" onclick="confirmarEliminarCliente()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARRITO CON DATOS PENDIENTES -->
+<div class="modal-overlay" id="modal-carrito-warning">
+  <div class="modal">
+    <div class="modal-titulo">⚠️ Carrito con productos</div>
+    <p style="color:var(--gris-texto);margin-bottom:24px;font-size:16px;">Hay productos en el carrito. Si sales se perderán. ¿Continuar?</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-carrito-warning')">Cancelar</button>
+      <button class="btn btn-rojo" style="flex:1" onclick="confirmarSalirVentas()">Sí, salir</button>
     </div>
   </div>
 </div>
@@ -354,7 +408,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore, enableIndexedDbPersistence,
   collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc,
-  query, orderBy, writeBatch, where
+  query, orderBy, writeBatch, where, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -365,51 +419,58 @@ const firebaseConfig = {
   messagingSenderId: "905065866276",
   appId: "1:905065866276:web:1cd6306f7895492ea5a4b1"
 };
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
 enableIndexedDbPersistence(db).catch(()=>{});
 
 // ── SYNC ──
+const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4'];
 function setSync(e){
-  ['syncDot','syncDot2','syncDot3','syncDot4'].forEach(id=>{
-    const el=document.getElementById(id); if(!el)return;
-    el.className='sync-dot'+(e==='offline'?' offline':e==='syncing'?' syncing':'');
-  });
+  SYNC_IDS.forEach(id=>{const el=document.getElementById(id);if(!el)return;
+    el.className='sync-dot'+(e==='offline'?' offline':e==='syncing'?' syncing':'');});
 }
 window.addEventListener('online',()=>setSync('online'));
 window.addEventListener('offline',()=>setSync('offline'));
 setSync(navigator.onLine?'online':'offline');
 
 // ── TOAST ──
-window.toast=function(msg,ms=2400){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('visible');
-  setTimeout(()=>t.classList.remove('visible'),ms);
-};
+window.toast=function(msg,ms=2400){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('visible');setTimeout(()=>t.classList.remove('visible'),ms);};
 
 // ── MODALES ──
 window.cerrarModal=function(id){document.getElementById(id).classList.remove('abierto');};
-document.querySelectorAll('.modal-overlay').forEach(o=>{
-  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('abierto');});
-});
+document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('abierto');});});
 
 // ── NAVEGACIÓN ──
 window.ir=function(pantalla){
   document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('activa'));
   document.getElementById('pantalla-'+pantalla).classList.add('activa');
-  if(pantalla==='productos') cargarProductos();
-  if(pantalla==='hielera')   cargarHielera();
-  if(pantalla==='clientes')  cargarClientes();
+  if(pantalla==='productos')cargarProductos();
+  if(pantalla==='hielera')cargarHielera();
+  if(pantalla==='clientes')cargarClientes();
+  if(pantalla==='ventas')iniciarVentas();
 };
+
+let _destinoSalirVentas='menu';
+window.irMenuDesdeVentas=function(){
+  if(carrito.length>0){_destinoSalirVentas='menu';document.getElementById('modal-carrito-warning').classList.add('abierto');}
+  else ir('menu');
+};
+window.confirmarSalirVentas=function(){cerrarModal('modal-carrito-warning');resetVentas();ir(_destinoSalirVentas);};
+
+// ══════════════════════════════════════
+//  CACHE GLOBAL
+// ══════════════════════════════════════
+let productosCache=[];
+let hieleraCache=[];
+let clientesCache=[];
 
 // ══════════════════════════════════════
 //  PRODUCTOS
 // ══════════════════════════════════════
-let imagenBase64=null, productoEditandoId=null, productoEliminandoId=null;
-let productosCache=[];
+let imagenBase64=null,productoEditandoId=null,productoEliminandoId=null;
 
 window.abrirModalProducto=function(prod=null){
-  imagenBase64=null; productoEditandoId=prod?prod.id:null;
+  imagenBase64=null;productoEditandoId=prod?prod.id:null;
   document.getElementById('prod-nombre').value=prod?prod.nombre:'';
   document.getElementById('prod-precio').value=prod?prod.precio:'';
   document.getElementById('modal-producto-titulo-texto').textContent=prod?'Editar producto':'Nuevo producto';
@@ -420,26 +481,22 @@ window.abrirModalProducto=function(prod=null){
   document.getElementById('modal-producto').classList.add('abierto');
   setTimeout(()=>document.getElementById('prod-nombre').focus(),300);
 };
-
 window.cargarImagen=function(e){
   const archivo=e.target.files[0];if(!archivo)return;
   const reader=new FileReader();
   reader.onload=ev=>{
     const imgEl=new Image();
     imgEl.onload=()=>{
-      const canvas=document.createElement('canvas');
-      const MAX=300;let w=imgEl.width,h=imgEl.height;
+      const canvas=document.createElement('canvas');const MAX=300;let w=imgEl.width,h=imgEl.height;
       if(w>h){if(w>MAX){h=h*MAX/w;w=MAX;}}else{if(h>MAX){w=w*MAX/h;h=MAX;}}
       canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(imgEl,0,0,w,h);
       imagenBase64=canvas.toDataURL('image/jpeg',.75);
-      const preview=document.getElementById('imgPreview');
-      document.getElementById('imgEmoji').style.display='none';
+      const preview=document.getElementById('imgPreview');document.getElementById('imgEmoji').style.display='none';
       const vieja=preview.querySelector('img');if(vieja)vieja.remove();
       const img=document.createElement('img');img.src=imagenBase64;preview.appendChild(img);
     };imgEl.src=ev.target.result;
   };reader.readAsDataURL(archivo);e.target.value='';
 };
-
 window.guardarProducto=async function(){
   const nombre=document.getElementById('prod-nombre').value.trim();
   const precio=parseFloat(document.getElementById('prod-precio').value);
@@ -455,20 +512,16 @@ window.guardarProducto=async function(){
   }catch(err){toast('⚠️ Error al guardar');cerrarModal('modal-producto');}
   finally{btn.disabled=false;btn.textContent='Guardar';setSync(navigator.onLine?'online':'offline');}
 };
-
 window.pedirEliminar=function(id){productoEliminandoId=id;document.getElementById('modal-confirmar-prod').classList.add('abierto');};
 window.confirmarEliminarProducto=async function(){
-  try{await deleteDoc(doc(db,'productos',productoEliminandoId));toast('🗑️ Producto eliminado');}
-  catch(err){toast('⚠️ Error al eliminar');}
+  try{await deleteDoc(doc(db,'productos',productoEliminandoId));toast('🗑️ Producto eliminado');}catch(err){toast('⚠️ Error');}
   cerrarModal('modal-confirmar-prod');await cargarProductos();
 };
 window.editarProducto=async function(id){const prod=productosCache.find(p=>p.id===id);if(prod)abrirModalProducto(prod);};
-
 async function cargarProductos(){
   const lista=document.getElementById('lista-productos');
   lista.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
-  try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}
-  catch(err){productosCache=[];}
+  try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(err){productosCache=[];}
   if(productosCache.length===0){lista.innerHTML=`<div class="empty"><div class="empty-icon">🏷️</div><p>No hay productos.<br>Toca <strong>＋</strong> para agregar.</p></div>`;return;}
   lista.innerHTML=`<p class="seccion-titulo">${productosCache.length} producto${productosCache.length!==1?'s':''}</p>`;
   productosCache.forEach(p=>{
@@ -486,16 +539,12 @@ async function cargarProductos(){
 // ══════════════════════════════════════
 //  HIELERA
 // ══════════════════════════════════════
-let hieleraCache=[], hielera_cantInputs={}, itemExpandido=null;
-
+let hielera_cantInputs={},itemExpandido=null;
 async function cargarHielera(){
   const contenido=document.getElementById('contenido-hielera');
   contenido.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
-  if(productosCache.length===0){
-    try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){}
-  }
-  try{const snap=await getDocs(collection(db,'hielera'));hieleraCache=snap.docs.map(d=>({id:d.id,...d.data()}));}
-  catch(e){hieleraCache=[];}
+  if(productosCache.length===0){try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){}}
+  try{const snap=await getDocs(collection(db,'hielera'));hieleraCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){hieleraCache=[];}
   const tieneStock=hieleraCache.some(h=>h.cantidadActual>0);
   const total=hieleraCache.reduce((s,h)=>s+h.cantidadActual,0);
   contenido.innerHTML='';
@@ -503,23 +552,17 @@ async function cargarHielera(){
   hero.innerHTML=`<div class="hielera-hero-title">❄️ La Hielera</div><div class="hielera-hero-num">${total}</div><div class="hielera-hero-label">producto${total!==1?'s':''} disponible${total!==1?'s':''}</div>`;
   contenido.appendChild(hero);
   const btnsRow=document.createElement('div');btnsRow.className='hielera-btns';
-  const btnLlenar=document.createElement('button');btnLlenar.className='btn btn-primario';btnLlenar.style.flex='1';
-  btnLlenar.innerHTML='❄️ Llenar Hielera';btnLlenar.disabled=tieneStock;
+  const btnLlenar=document.createElement('button');btnLlenar.className='btn btn-primario';btnLlenar.style.flex='1';btnLlenar.innerHTML='❄️ Llenar Hielera';btnLlenar.disabled=tieneStock;
   btnLlenar.onclick=()=>{if(tieneStock)document.getElementById('modal-hielera-warning').classList.add('abierto');else mostrarFormaCarga();};
-  const btnVaciar=document.createElement('button');btnVaciar.className='btn btn-rojo-outline';btnVaciar.style.flex='1';
-  btnVaciar.innerHTML='🗑️ Vaciar y Reportar';btnVaciar.disabled=!tieneStock;btnVaciar.onclick=mostrarReporte;
+  const btnVaciar=document.createElement('button');btnVaciar.className='btn btn-rojo-outline';btnVaciar.style.flex='1';btnVaciar.innerHTML='🗑️ Vaciar y Reportar';btnVaciar.disabled=!tieneStock;btnVaciar.onclick=mostrarReporte;
   btnsRow.appendChild(btnLlenar);btnsRow.appendChild(btnVaciar);contenido.appendChild(btnsRow);
   if(!tieneStock)mostrarFormaCarga();else renderStockActual(contenido);
 }
-
 function mostrarFormaCarga(){
   const contenido=document.getElementById('contenido-hielera');
   const v1=document.getElementById('forma-carga');if(v1)v1.remove();
   const v2=document.getElementById('stock-actual');if(v2)v2.remove();
-  if(productosCache.length===0){
-    const av=document.createElement('div');av.className='empty';av.id='forma-carga';
-    av.innerHTML='<div class="empty-icon">⚠️</div><p>Primero agrega productos en el catálogo.</p>';contenido.appendChild(av);return;
-  }
+  if(productosCache.length===0){const av=document.createElement('div');av.className='empty';av.id='forma-carga';av.innerHTML='<div class="empty-icon">⚠️</div><p>Primero agrega productos en el catálogo.</p>';contenido.appendChild(av);return;}
   const wrap=document.createElement('div');wrap.id='forma-carga';
   const titulo=document.createElement('p');titulo.className='seccion-titulo';titulo.textContent='Ingresa cantidades del día';wrap.appendChild(titulo);
   const grid=document.createElement('div');grid.className='hielera-grid';hielera_cantInputs={};
@@ -537,7 +580,6 @@ function mostrarFormaCarga(){
   const btnGuardar=document.createElement('button');btnGuardar.className='btn btn-primario btn-full';btnGuardar.textContent='❄️ Llenar Hielera';btnGuardar.id='btnLlenarHielera';btnGuardar.onclick=ejecutarLlenarHielera;
   wrap.appendChild(btnGuardar);contenido.appendChild(wrap);
 }
-
 window.ejecutarLlenarHielera=async function(){
   cerrarModal('modal-hielera-warning');
   const btn=document.getElementById('btnLlenarHielera');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
@@ -550,15 +592,13 @@ window.ejecutarLlenarHielera=async function(){
       const input=hielera_cantInputs[p.id];if(!input)return;
       const cant=parseInt(input.value)||0;if(cant>0){
         const ref=doc(db,'hielera',p.id);
-        batch.set(ref,{idProducto:p.id,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
-        total+=cant;
+        batch.set(ref,{idProducto:p.id,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});total+=cant;
       }
     });
     await batch.commit();toast(`✅ Hielera cargada — ${total} productos`);await cargarHielera();
   }catch(err){toast('⚠️ Error al guardar la hielera');if(btn){btn.disabled=false;btn.textContent='❄️ Llenar Hielera';}}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
-
 function renderStockActual(contenido){
   const v=document.getElementById('stock-actual');if(v)v.remove();
   const wrap=document.createElement('div');wrap.id='stock-actual';
@@ -570,7 +610,7 @@ function renderStockActual(contenido){
     if(h.imagen){const img=document.createElement('img');img.src=h.imagen;imgDiv.appendChild(img);}else imgDiv.textContent='🧊';
     const nombre=document.createElement('span');nombre.className='stock-item-nombre';nombre.textContent=h.nombre;
     const cant=document.createElement('span');cant.className='stock-item-cant'+(h.cantidadActual===0?' cero':'');cant.id='cant-'+h.idProducto;cant.textContent=h.cantidadActual;
-    const btnAdd=document.createElement('button');btnAdd.className='stock-item-add';btnAdd.innerHTML='＋';btnAdd.onclick=()=>togglePanel(h.idProducto,h.nombre);
+    const btnAdd=document.createElement('button');btnAdd.className='stock-item-add';btnAdd.innerHTML='＋';btnAdd.onclick=()=>togglePanel(h.idProducto);
     row.appendChild(imgDiv);row.appendChild(nombre);row.appendChild(cant);row.appendChild(btnAdd);itemWrap.appendChild(row);
     const panel=document.createElement('div');panel.className='stock-agregar-panel';panel.id='panel-'+h.idProducto;panel.style.display='none';
     panel.innerHTML=`<span class="stock-agregar-label">¿Cuántos agregas a ${h.nombre}?</span><input type="number" class="stock-agregar-input" id="add-input-${h.idProducto}" value="0" min="0" inputmode="numeric"><button class="stock-agregar-btn" onclick="agregarStock('${h.idProducto}')">Agregar</button>`;
@@ -580,20 +620,18 @@ function renderStockActual(contenido){
   });
   contenido.appendChild(wrap);
 }
-
 function togglePanel(idProducto){
   if(itemExpandido&&itemExpandido!==idProducto){const pv=document.getElementById('panel-'+itemExpandido);if(pv)pv.style.display='none';}
   const panel=document.getElementById('panel-'+idProducto);if(!panel)return;
   const abierto=panel.style.display!=='none';panel.style.display=abierto?'none':'flex';itemExpandido=abierto?null:idProducto;
   if(!abierto){const input=document.getElementById('add-input-'+idProducto);if(input){input.value='';setTimeout(()=>input.focus(),100);}}
 }
-
 window.agregarStock=async function(idProducto){
   const input=document.getElementById('add-input-'+idProducto);const cant=parseInt(input.value)||0;
   if(cant<=0){toast('⚠️ Ingresa una cantidad mayor a 0');return;}
   setSync('syncing');
   try{
-    const ref=doc(db,'hielera',idProducto);const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ Producto no encontrado');return;}
+    const ref=doc(db,'hielera',idProducto);const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ No encontrado');return;}
     const data=snap.data();const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
     await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
     const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
@@ -605,7 +643,6 @@ window.agregarStock=async function(idProducto){
   }catch(err){toast('⚠️ Error al agregar stock');}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
-
 async function mostrarReporte(){
   if(hieleraCache.length===0){toast('La hielera ya está vacía');return;}
   const totalVenta=hieleraCache.reduce((s,h)=>s+(h.cantidadInicial-h.cantidadActual)*h.precio,0);
@@ -619,7 +656,6 @@ async function mostrarReporte(){
   document.getElementById('reporte-contenido').innerHTML=html;
   document.getElementById('modal-reporte').classList.add('abierto');
 }
-
 window.confirmarVaciar=async function(){
   setSync('syncing');
   try{
@@ -627,167 +663,347 @@ window.confirmarVaciar=async function(){
     await setDoc(doc(db,'config','ultimo_reporte'),{fecha:new Date().toISOString(),lineas,totalVenta:lineas.reduce((s,l)=>s+l.monto,0)});
     const batch=writeBatch(db);const snap=await getDocs(collection(db,'hielera'));snap.docs.forEach(d=>batch.delete(d.ref));await batch.commit();
     cerrarModal('modal-reporte');toast('🧊 Hielera vaciada');await cargarHielera();
-  }catch(err){toast('⚠️ Error al vaciar la hielera');}
+  }catch(err){toast('⚠️ Error al vaciar');}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
 
 // ══════════════════════════════════════
 //  CLIENTES
 // ══════════════════════════════════════
-let clientesCache=[], clienteActualId=null, clienteEliminandoId=null;
-
-// Asegurar que existe el cliente ocasional
+let clienteActualId=null,clienteEliminandoId=null;
 async function asegurarClienteOcasional(){
-  const ref=doc(db,'clientes','ocasional');
-  const snap=await getDoc(ref);
-  if(!snap.exists()){
-    await setDoc(ref,{nombre:'Cliente Ocasional',esOcasional:true,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null,creadoEn:new Date().toISOString()});
-  }
+  const ref=doc(db,'clientes','ocasional');const snap=await getDoc(ref);
+  if(!snap.exists()){await setDoc(ref,{nombre:'Cliente Ocasional',esOcasional:true,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null,creadoEn:new Date().toISOString()});}
 }
-
 async function cargarClientes(){
   const lista=document.getElementById('lista-clientes');
   lista.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
   try{
     await asegurarClienteOcasional();
     const snap=await getDocs(collection(db,'clientes'));
-    // Excluir cliente ocasional de la lista de deudas
     clientesCache=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);
   }catch(e){clientesCache=[];}
-
-  if(clientesCache.length===0){
-    lista.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><p>No hay clientes todavía.<br>Toca <strong>Agregar</strong> para añadir el primero.</p></div>`;
-    return;
-  }
-
-  // Ordenar: deuda > 0 primero (mayor a menor), luego saldo = 0, luego saldo < 0 (a favor)
+  if(clientesCache.length===0){lista.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><p>No hay clientes.<br>Toca <strong>Agregar</strong>.</p></div>`;return;}
   const ordenados=[...clientesCache].sort((a,b)=>{
-    const sa=a.saldo||0, sb=b.saldo||0;
-    if(sa>0&&sb<=0)return -1;
-    if(sb>0&&sa<=0)return 1;
-    if(sa>0&&sb>0)return sb-sa;
-    if(sa<0&&sb<0)return sa-sb;
+    const sa=a.saldo||0,sb=b.saldo||0;
+    if(sa>0&&sb<=0)return -1;if(sb>0&&sa<=0)return 1;
+    if(sa>0&&sb>0)return sb-sa;if(sa<0&&sb<0)return sa-sb;
     return a.nombre.localeCompare(b.nombre);
   });
-
   lista.innerHTML='';
   ordenados.forEach(c=>{
     const saldo=c.saldo||0;
     let badgeHtml;
-    if(saldo>0) badgeHtml=`<span class="cliente-badge badge-deuda">Debe $${saldo.toFixed(2)}</span>`;
-    else if(saldo<0) badgeHtml=`<span class="cliente-badge badge-favor">A favor $${Math.abs(saldo).toFixed(2)}</span>`;
+    if(saldo>0)badgeHtml=`<span class="cliente-badge badge-deuda">Debe $${saldo.toFixed(2)}</span>`;
+    else if(saldo<0)badgeHtml=`<span class="cliente-badge badge-favor">A favor $${Math.abs(saldo).toFixed(2)}</span>`;
     else badgeHtml=`<span class="cliente-badge badge-corriente">Al corriente</span>`;
-
     const item=document.createElement('div');item.className='cliente-item';
     item.innerHTML=`<span class="cliente-nombre">${c.nombre}</span>${badgeHtml}<span class="cliente-chevron">›</span>`;
-    item.onclick=()=>abrirDetalleCliente(c.id);
-    lista.appendChild(item);
+    item.onclick=()=>abrirDetalleCliente(c.id);lista.appendChild(item);
   });
 }
-
 function abrirDetalleCliente(id){
   const c=clientesCache.find(x=>x.id===id);if(!c)return;
-  clienteActualId=id;
-  const saldo=c.saldo||0;
+  clienteActualId=id;const saldo=c.saldo||0;
   document.getElementById('detalle-nombre').textContent=c.nombre;
   document.getElementById('det-consumo').textContent=`$${(c.consumoTotal||0).toFixed(2)}`;
   document.getElementById('det-abonado').textContent=`$${(c.totalAbonado||0).toFixed(2)}`;
-
   const saldoEl=document.getElementById('det-saldo');
-  saldoEl.textContent=`$${Math.abs(saldo).toFixed(2)}`;
-  saldoEl.className='stat-valor '+(saldo>0?'stat-rojo':saldo<0?'stat-verde':'');
-  if(saldo<0)saldoEl.textContent=`+$${Math.abs(saldo).toFixed(2)} a favor`;
-
+  if(saldo<0){saldoEl.textContent=`+$${Math.abs(saldo).toFixed(2)} a favor`;saldoEl.className='stat-valor stat-verde';}
+  else{saldoEl.textContent=`$${saldo.toFixed(2)}`;saldoEl.className='stat-valor'+(saldo>0?' stat-rojo':'');}
   if(c.ultimoAbono){
     document.getElementById('det-ultimo-monto').textContent=`$${c.ultimoAbono.monto.toFixed(2)}`;
     const fecha=new Date(c.ultimoAbono.fecha);
     document.getElementById('det-ultimo-fecha').textContent=fecha.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  }else{
-    document.getElementById('det-ultimo-monto').textContent='—';
-    document.getElementById('det-ultimo-fecha').textContent='Sin abonos';
-  }
-
+  }else{document.getElementById('det-ultimo-monto').textContent='—';document.getElementById('det-ultimo-fecha').textContent='Sin abonos';}
   document.getElementById('abono-monto-input').value='';
   document.getElementById('modal-detalle-cliente').classList.add('abierto');
 }
-
-window.abrirModalNuevoCliente=function(){
-  document.getElementById('cliente-nombre-input').value='';
-  document.getElementById('modal-nuevo-cliente').classList.add('abierto');
-  setTimeout(()=>document.getElementById('cliente-nombre-input').focus(),300);
-};
-
+window.abrirModalNuevoCliente=function(){document.getElementById('cliente-nombre-input').value='';document.getElementById('modal-nuevo-cliente').classList.add('abierto');setTimeout(()=>document.getElementById('cliente-nombre-input').focus(),300);};
 window.guardarCliente=async function(){
   const nombre=document.getElementById('cliente-nombre-input').value.trim();
-  if(!nombre){toast('⚠️ Escribe el nombre del cliente');return;}
-  const btn=document.getElementById('btnGuardarCliente');
-  btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
-  try{
-    await addDoc(collection(db,'clientes'),{nombre,esOcasional:false,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null,creadoEn:new Date().toISOString()});
-    toast(`✅ ${nombre} agregado`);cerrarModal('modal-nuevo-cliente');await cargarClientes();
-  }catch(err){toast('⚠️ Error al guardar');}
+  if(!nombre){toast('⚠️ Escribe el nombre');return;}
+  const btn=document.getElementById('btnGuardarCliente');btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
+  try{await addDoc(collection(db,'clientes'),{nombre,esOcasional:false,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null,creadoEn:new Date().toISOString()});toast(`✅ ${nombre} agregado`);cerrarModal('modal-nuevo-cliente');await cargarClientes();}
+  catch(err){toast('⚠️ Error al guardar');}
   finally{btn.disabled=false;btn.textContent='Guardar';setSync(navigator.onLine?'online':'offline');}
 };
-
 window.registrarAbono=async function(){
   const monto=parseFloat(document.getElementById('abono-monto-input').value);
-  if(isNaN(monto)||monto<=0){toast('⚠️ Ingresa un monto válido');return;}
-  const btn=document.getElementById('btnAbonar');
-  btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
+  if(isNaN(monto)||monto<=0){toast('⚠️ Monto inválido');return;}
+  const btn=document.getElementById('btnAbonar');btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
   try{
-    const clienteRef=doc(db,'clientes',clienteActualId);
-    const snap=await getDoc(clienteRef);if(!snap.exists()){toast('⚠️ Cliente no encontrado');return;}
-    const data=snap.data();
-    const nuevoAbonado=(data.totalAbonado||0)+monto;
-    const nuevoSaldo=(data.saldo||0)-monto;
-    const ahora=new Date().toISOString();
+    const clienteRef=doc(db,'clientes',clienteActualId);const snap=await getDoc(clienteRef);if(!snap.exists())return;
+    const data=snap.data();const nuevoAbonado=(data.totalAbonado||0)+monto,nuevoSaldo=(data.saldo||0)-monto,ahora=new Date().toISOString();
     await updateDoc(clienteRef,{totalAbonado:nuevoAbonado,saldo:nuevoSaldo,ultimoAbono:{monto,fecha:ahora}});
-    // Guardar en colección abonos para historial
     await addDoc(collection(db,'abonos'),{idCliente:clienteActualId,nombreCliente:data.nombre,monto,fecha:ahora});
-
-    // Actualizar caché local
     const idx=clientesCache.findIndex(c=>c.id===clienteActualId);
     if(idx>=0){clientesCache[idx].totalAbonado=nuevoAbonado;clientesCache[idx].saldo=nuevoSaldo;clientesCache[idx].ultimoAbono={monto,fecha:ahora};}
-
-    toast(`✅ Abono de $${monto.toFixed(2)} registrado`);
-    cerrarModal('modal-detalle-cliente');await cargarClientes();
+    toast(`✅ Abono de $${monto.toFixed(2)} registrado`);cerrarModal('modal-detalle-cliente');await cargarClientes();
   }catch(err){toast('⚠️ Error al registrar abono');}
   finally{btn.disabled=false;btn.textContent='$ Abonar';setSync(navigator.onLine?'online':'offline');}
 };
-
 window.pedirEliminarCliente=function(){
   const c=clientesCache.find(x=>x.id===clienteActualId);if(!c)return;
-  clienteEliminandoId=clienteActualId;
-  document.getElementById('eliminar-cliente-nombre').textContent=c.nombre;
-  cerrarModal('modal-detalle-cliente');
-  document.getElementById('modal-confirmar-cliente').classList.add('abierto');
+  clienteEliminandoId=clienteActualId;document.getElementById('eliminar-cliente-nombre').textContent=c.nombre;
+  cerrarModal('modal-detalle-cliente');document.getElementById('modal-confirmar-cliente').classList.add('abierto');
 };
-
 window.confirmarEliminarCliente=async function(){
   setSync('syncing');
   try{
-    // Borrar abonos del cliente
     const abonosSnap=await getDocs(query(collection(db,'abonos'),where('idCliente','==',clienteEliminandoId)));
-    const batch=writeBatch(db);
-    abonosSnap.docs.forEach(d=>batch.delete(d.ref));
-    batch.delete(doc(db,'clientes',clienteEliminandoId));
-    await batch.commit();
+    const batch=writeBatch(db);abonosSnap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(doc(db,'clientes',clienteEliminandoId));await batch.commit();
     toast('🗑️ Cliente eliminado');cerrarModal('modal-confirmar-cliente');await cargarClientes();
-  }catch(err){toast('⚠️ Error al eliminar cliente');}
+  }catch(err){toast('⚠️ Error al eliminar');}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
 
-// Exponer para módulos futuros
-window._db=db;
-window._col=collection;window._addDoc=addDoc;window._getDocs=getDocs;
-window._doc=doc;window._setDoc=setDoc;window._updateDoc=updateDoc;
-window._deleteDoc=deleteDoc;window._getDoc=getDoc;window._query=query;
-window._orderBy=orderBy;window._writeBatch=writeBatch;window._where=where;
-window._productosCache=()=>productosCache;
-window._hieleraCache=()=>hieleraCache;
-window._clientesCache=()=>clientesCache;
+// ══════════════════════════════════════
+//  VENTAS
+// ══════════════════════════════════════
+let carrito=[];         // [{id, nombre, imagen, precio, cantidad, pagado, esPrestamo}]
+let clienteVenta=null;  // {id, nombre, esOcasional}
+let tapHistory=[];      // historial de taps para Cancelar 1
+let hieleraLocal={};    // {idProducto: cantidadActual} copia local
 
-console.log('✅ Bolis App — Módulo 3 listo');
+async function iniciarVentas(){
+  resetVentas();
+  // Cargar clientes si no están en caché
+  if(clientesCache.length===0){
+    try{
+      await asegurarClienteOcasional();
+      const snap=await getDocs(collection(db,'clientes'));
+      clientesCache=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);
+    }catch(e){}
+  }
+  // Cargar hielera si no está en caché
+  if(hieleraCache.length===0){
+    try{const snap=await getDocs(collection(db,'hielera'));hieleraCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){}
+  }
+  // Inicializar copia local de hielera
+  hieleraLocal={};
+  hieleraCache.forEach(h=>{hieleraLocal[h.idProducto]=h.cantidadActual;});
+  // Poblar select de clientes
+  const sel=document.getElementById('ventas-cliente-select');
+  sel.innerHTML='<option value="">Selecciona un cliente...</option><option value="ocasional">👤 Cliente Ocasional</option>';
+  const ordenados=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  ordenados.forEach(c=>{
+    const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.nombre;sel.appendChild(opt);
+  });
+  // Renderizar grid de productos
+  renderVentaGrid();
+  renderCarrito();
+}
+
+function resetVentas(){
+  carrito=[];tapHistory=[];clienteVenta=null;hieleraLocal={};
+  const sel=document.getElementById('ventas-cliente-select');if(sel)sel.value='';
+  const pi=document.getElementById('prestamo-input');if(pi)pi.value='';
+}
+
+window.onClienteChange=function(){
+  const sel=document.getElementById('ventas-cliente-select');
+  const val=sel.value;
+  if(!val){clienteVenta=null;}
+  else if(val==='ocasional'){clienteVenta={id:'ocasional',nombre:'Cliente Ocasional',esOcasional:true};}
+  else{const c=clientesCache.find(x=>x.id===val);clienteVenta=c?{id:c.id,nombre:c.nombre,esOcasional:false}:null;}
+  renderVentaGrid();
+  renderCarrito();
+};
+
+function renderVentaGrid(){
+  const grid=document.getElementById('venta-grid');if(!grid)return;
+  grid.innerHTML='';
+  const productosEnHielera=hieleraCache.filter(h=>h.cantidadActual>0||(hieleraLocal[h.idProducto]||0)>0);
+  const activos=hieleraCache.filter(h=>(hieleraLocal[h.idProducto]||0)>0);
+  if(hieleraCache.length===0){
+    grid.style.gridTemplateColumns='1fr';
+    grid.innerHTML='<p style="color:var(--gris-texto);font-size:15px;text-align:center;padding:16px">La hielera está vacía.<br>Cárgala antes de vender.</p>';
+    return;
+  }
+  grid.style.gridTemplateColumns='1fr 1fr 1fr';
+  hieleraCache.forEach(h=>{
+    const stockLocal=hieleraLocal[h.idProducto]||0;
+    if(stockLocal===0)return; // No mostrar si sin stock
+    const enCarrito=carrito.find(c=>c.id===h.idProducto);
+    const cantEnCarrito=enCarrito?enCarrito.cantidad:0;
+    const card=document.createElement('div');card.className='venta-prod-card'+(clienteVenta?'':' bloqueado');
+    const imgHtml=h.imagen?`<div class="venta-prod-img"><img src="${h.imagen}"></div>`:`<div class="venta-prod-img">🧊</div>`;
+    card.innerHTML=`${imgHtml}<div class="venta-prod-nombre">${h.nombre}</div><div class="venta-prod-precio">$${h.precio}</div><div class="venta-prod-stock">${stockLocal} disp.</div>${cantEnCarrito>0?`<div class="venta-prod-badge">${cantEnCarrito}</div>`:''}`;
+    card.onclick=()=>agregarAlCarrito(h.idProducto);
+    grid.appendChild(card);
+  });
+}
+
+function agregarAlCarrito(idProducto){
+  if(!clienteVenta){toast('⚠️ Selecciona un cliente primero');return;}
+  const stock=hieleraLocal[idProducto]||0;
+  if(stock<=0){toast('⚠️ Sin stock');return;}
+  const h=hieleraCache.find(x=>x.idProducto===idProducto);if(!h)return;
+  const existente=carrito.find(c=>c.id===idProducto);
+  if(existente){existente.cantidad++;}
+  else{carrito.push({id:idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidad:1,pagado:clienteVenta.esOcasional,esPrestamo:false});}
+  hieleraLocal[idProducto]--;
+  tapHistory.push(idProducto);
+  renderVentaGrid();renderCarrito();
+}
+
+window.agregarPrestamo=function(){
+  if(!clienteVenta){toast('⚠️ Selecciona un cliente primero');return;}
+  const monto=parseFloat(document.getElementById('prestamo-input').value);
+  if(isNaN(monto)||monto<=0){toast('⚠️ Ingresa un monto válido');return;}
+  carrito.push({id:'prestamo_'+Date.now(),nombre:'Préstamo',imagen:null,precio:monto,cantidad:1,pagado:false,esPrestamo:true});
+  document.getElementById('prestamo-input').value='';
+  renderCarrito();
+};
+
+window.togglePagado=function(idx){
+  if(carrito[idx])carrito[idx].pagado=!carrito[idx].pagado;
+  renderCarrito();
+};
+
+window.todoPagado=function(){
+  carrito.forEach(c=>c.pagado=true);renderCarrito();
+};
+
+window.eliminarLineaCarrito=function(idx){
+  const item=carrito[idx];
+  if(item&&!item.esPrestamo){
+    // Restaurar stock
+    hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+item.cantidad;
+    // Limpiar del tapHistory
+    let restantes=item.cantidad;
+    for(let i=tapHistory.length-1;i>=0&&restantes>0;i--){if(tapHistory[i]===item.id){tapHistory.splice(i,1);restantes--;}}
+  }
+  carrito.splice(idx,1);renderVentaGrid();renderCarrito();
+};
+
+window.cancelarUltimo=function(){
+  if(tapHistory.length===0){toast('No hay nada que cancelar');return;}
+  const lastId=tapHistory.pop();
+  const idx=carrito.findIndex(c=>c.id===lastId);
+  if(idx<0)return;
+  if(carrito[idx].cantidad>1){carrito[idx].cantidad--;}
+  else{carrito.splice(idx,1);}
+  hieleraLocal[lastId]=(hieleraLocal[lastId]||0)+1;
+  renderVentaGrid();renderCarrito();
+};
+
+function renderCarrito(){
+  const lista=document.getElementById('carrito-lista');
+  const titulo=document.getElementById('carrito-titulo');
+  const btnCanc=document.getElementById('btn-cancelar1');
+  const btnTodo=document.getElementById('btn-todo-pagado');
+  const btnCerrar=document.getElementById('btn-cerrar-venta');
+  const totalEl=document.getElementById('ventas-total');
+
+  if(carrito.length===0){
+    lista.innerHTML='<div class="carrito-vacio">El carrito está vacío</div>';
+    titulo.textContent='Carrito (0 líneas)';
+    btnCanc.style.display='none';btnTodo.style.display='none';
+    btnCerrar.disabled=true;totalEl.textContent='$0.00';return;
+  }
+
+  titulo.textContent=`Carrito (${carrito.length} línea${carrito.length!==1?'s':''})`;
+  btnCanc.style.display=tapHistory.length>0?'':'none';
+  btnTodo.style.display='';
+  btnCerrar.disabled=false;
+
+  let total=0;
+  lista.innerHTML='';
+  carrito.forEach((item,idx)=>{
+    total+=item.precio*item.cantidad;
+    const div=document.createElement('div');div.className='carrito-item'+(item.pagado?' pagado':'');
+    const checkHtml=`<div class="carrito-checkbox${item.pagado?' checked':''}" onclick="togglePagado(${idx})">${item.pagado?'✓':''}</div>`;
+    const imgHtml=item.esPrestamo?'🤝':item.imagen?`<img src="${item.imagen}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0">`:'🧊';
+    const sub=item.esPrestamo?`${clienteVenta?.nombre||''} · x1 · $${item.precio}c/u`:`${clienteVenta?.nombre||''} · x${item.cantidad} · $${item.precio}c/u`;
+    div.innerHTML=`${checkHtml}<span style="font-size:22px;flex-shrink:0">${imgHtml}</span><div class="carrito-info"><div class="carrito-nombre">${item.nombre}</div><div class="carrito-sub">${sub}</div></div><div class="carrito-monto">$${(item.precio*item.cantidad).toFixed(2)}</div><button class="carrito-del" onclick="eliminarLineaCarrito(${idx})">🗑️</button>`;
+    lista.appendChild(div);
+  });
+  totalEl.textContent=`$${total.toFixed(2)}`;
+}
+
+window.cerrarVenta=async function(){
+  if(!clienteVenta||carrito.length===0)return;
+  const btn=document.getElementById('btn-cerrar-venta');
+  btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
+  try{
+    const ahora=new Date().toISOString();
+    const ventaId='v_'+Date.now();
+    const batch=writeBatch(db);
+
+    let totalConsumo=0,totalDeuda=0,totalPagadoEnVenta=0;
+
+    // Guardar cada línea al historial y actualizar hielera
+    carrito.forEach(item=>{
+      const monto=item.precio*item.cantidad;
+      totalConsumo+=monto;
+      if(!item.pagado)totalDeuda+=monto;
+      else totalPagadoEnVenta+=monto;
+
+      // Historial
+      const hRef=doc(collection(db,'historial'));
+      batch.set(hRef,{
+        idVenta:ventaId,
+        idCliente:clienteVenta.id,
+        nombreCliente:clienteVenta.nombre,
+        idProducto:item.esPrestamo?'prestamo':item.id,
+        nombreProducto:item.nombre,
+        imagen:item.imagen||null,
+        cantidad:item.cantidad,
+        precioUnitario:item.precio,
+        monto,
+        pagado:item.pagado,
+        esPrestamo:item.esPrestamo,
+        fecha:ahora
+      });
+
+      // Actualizar stock en hielera (solo productos reales)
+      if(!item.esPrestamo){
+        const hielRef=doc(db,'hielera',item.id);
+        const hielItem=hieleraCache.find(h=>h.idProducto===item.id);
+        if(hielItem){
+          const nuevaActual=hielItem.cantidadActual-item.cantidad;
+          batch.update(hielRef,{cantidadActual:Math.max(0,nuevaActual)});
+          hielItem.cantidadActual=Math.max(0,nuevaActual);
+        }
+      }
+    });
+
+    // Actualizar cliente (excepto ocasional — no lleva deuda)
+    if(!clienteVenta.esOcasional){
+      const clienteRef=doc(db,'clientes',clienteVenta.id);
+      const cSnap=await getDoc(clienteRef);
+      if(cSnap.exists()){
+        const cData=cSnap.data();
+        const nuevoConsumo=(cData.consumoTotal||0)+totalConsumo;
+        const nuevoSaldo=(cData.saldo||0)+totalDeuda;
+        const nuevoAbonado=(cData.totalAbonado||0)+totalPagadoEnVenta;
+        batch.update(clienteRef,{consumoTotal:nuevoConsumo,saldo:nuevoSaldo,totalAbonado:nuevoAbonado});
+        // Actualizar caché local
+        const idx=clientesCache.findIndex(c=>c.id===clienteVenta.id);
+        if(idx>=0){clientesCache[idx].consumoTotal=nuevoConsumo;clientesCache[idx].saldo=nuevoSaldo;clientesCache[idx].totalAbonado=nuevoAbonado;}
+      }
+    }
+
+    await batch.commit();
+
+    const numLineas=carrito.length;
+    const totalStr=`$${carrito.reduce((s,i)=>s+i.precio*i.cantidad,0).toFixed(2)}`;
+    resetVentas();
+    iniciarVentas();
+    toast(`✅ Venta cerrada — ${numLineas} línea${numLineas!==1?'s':''} · ${totalStr}`);
+  }catch(err){
+    console.error(err);
+    toast('⚠️ Error al cerrar la venta');
+    btn.disabled=false;btn.textContent='Cerrar Venta';
+  }finally{
+    setSync(navigator.onLine?'online':'offline');
+  }
+};
+
+console.log('✅ Bolis App — Módulo 4 (Ventas) listo');
 </script>
 </body>
 </html>
