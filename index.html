@@ -167,14 +167,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .carrito-titulo{font-size:15px;font-weight:700;color:var(--gris-texto);flex:1;}
 .carrito-item{background:#fff;border-radius:var(--radio-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border:2px solid transparent;box-shadow:var(--sombra);}
 .carrito-item.pagado{border-color:var(--verde);background:var(--verde-light);}
-.carrito-checkbox{width:22px;height:22px;border-radius:6px;border:2px solid var(--gris-medio);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:background .15s,border-color .15s;}
-.carrito-checkbox.checked{background:var(--verde);border-color:var(--verde);color:#fff;}
+/* carrito-checkbox redefined below */
 .carrito-info{flex:1;min-width:0;}
 .carrito-nombre{font-size:16px;font-weight:700;}
 .carrito-sub{font-size:13px;color:var(--gris-texto);margin-top:2px;}
 .carrito-monto{font-size:17px;font-weight:800;color:var(--negro);white-space:nowrap;}
 .carrito-del{background:none;border:none;color:var(--gris-medio);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;}
 .carrito-del:active{color:var(--rojo);}
+.carrito-item.seleccionado{border-color:var(--rojo);background:var(--rojo-light);}
+.carrito-checkbox{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--gris-medio);flex-shrink:0;transition:color .15s;}
+.carrito-checkbox.sel-activo{color:var(--rojo);}
+.carrito-pagado{width:28px;height:28px;border-radius:50%;border:2px solid var(--gris-medio);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--gris-medio);flex-shrink:0;transition:all .15s;}
+.carrito-pagado.pagado-activo{background:var(--verde);border-color:var(--verde);color:#fff;}
 .carrito-vacio{text-align:center;padding:24px;color:var(--gris-texto);font-size:15px;}
 /* BARRA TOTAL */
 .ventas-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--gris);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:90;box-shadow:0 -2px 12px rgba(0,0,0,0.08);}
@@ -235,7 +239,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     <div class="ventas-seccion">
       <div class="ventas-cliente-row">
         <span class="ventas-label">Cliente</span>
-        <span class="ventas-fiado-badge">⚙️ Fiado (sin pago)</span>
+        <button id="btn-modo-pago" onclick="toggleModoPago()" style="background:var(--gris);border:2px solid var(--gris-medio);border-radius:50px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--gris-texto);cursor:pointer;">⚙️ Fiado (sin pago)</button>
       </div>
       <select class="ventas-select" id="ventas-cliente-select" onchange="onClienteChange()">
         <option value="">Selecciona un cliente...</option>
@@ -258,7 +262,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     <div class="ventas-seccion" id="carrito-seccion">
       <div class="carrito-header">
         <span class="carrito-titulo" id="carrito-titulo">Carrito (0 líneas)</span>
-        <button class="btn btn-rojo btn-sm" id="btn-cancelar1" onclick="cancelarUltimo()" style="display:none">✕ Cancelar 1</button>
+        <button class="btn btn-rojo btn-sm" id="btn-quitar1" onclick="quitarUno()" style="display:none">✕ Quitar 1</button>
         <button class="btn btn-sm" id="btn-todo-pagado" onclick="todoPagado()" style="background:var(--verde-light);color:var(--verde-dark);display:none">✓ Todo pagado</button>
       </div>
       <div id="carrito-lista"><div class="carrito-vacio">El carrito está vacío</div></div>
@@ -762,10 +766,11 @@ window.confirmarEliminarCliente=async function(){
 // ══════════════════════════════════════
 //  VENTAS
 // ══════════════════════════════════════
-let carrito=[];         // [{id, nombre, imagen, precio, cantidad, pagado, esPrestamo}]
-let clienteVenta=null;  // {id, nombre, esOcasional}
-let tapHistory=[];      // historial de taps para Cancelar 1
-let hieleraLocal={};    // {idProducto: cantidadActual} copia local
+let carrito=[];          // [{id, nombre, imagen, precio, cantidad, pagado, esPrestamo}]
+let clienteVenta=null;   // {id, nombre, esOcasional}
+let hieleraLocal={};     // {idProducto: cantidadActual} copia local
+let modoFiado=true;      // true=fiado, false=pago al momento
+let lineaSeleccionada=null; // índice de línea seleccionada para Quitar 1
 
 async function iniciarVentas(){
   resetVentas();
@@ -797,7 +802,8 @@ async function iniciarVentas(){
 }
 
 function resetVentas(){
-  carrito=[];tapHistory=[];clienteVenta=null;hieleraLocal={};
+  carrito=[];clienteVenta=null;hieleraLocal={};modoFiado=true;lineaSeleccionada=null;
+  const btnModo=document.getElementById('btn-modo-pago');if(btnModo){btnModo.textContent='⚙️ Fiado (sin pago)';btnModo.style.background='var(--gris)';btnModo.style.color='var(--gris-texto)';btnModo.style.borderColor='var(--gris-medio)';}
   const sel=document.getElementById('ventas-cliente-select');if(sel)sel.value='';
   const pi=document.getElementById('prestamo-input');if(pi)pi.value='';
 }
@@ -843,9 +849,8 @@ function agregarAlCarrito(idProducto){
   const h=hieleraCache.find(x=>x.idProducto===idProducto);if(!h)return;
   const existente=carrito.find(c=>c.id===idProducto);
   if(existente){existente.cantidad++;}
-  else{carrito.push({id:idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidad:1,pagado:clienteVenta.esOcasional,esPrestamo:false});}
+  else{carrito.push({id:idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidad:1,pagado:clienteVenta.esOcasional||!modoFiado,esPrestamo:false});}
   hieleraLocal[idProducto]--;
-  tapHistory.push(idProducto);
   renderVentaGrid();renderCarrito();
 }
 
@@ -869,25 +874,37 @@ window.todoPagado=function(){
 
 window.eliminarLineaCarrito=function(idx){
   const item=carrito[idx];
-  if(item&&!item.esPrestamo){
-    // Restaurar stock
-    hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+item.cantidad;
-    // Limpiar del tapHistory
-    let restantes=item.cantidad;
-    for(let i=tapHistory.length-1;i>=0&&restantes>0;i--){if(tapHistory[i]===item.id){tapHistory.splice(i,1);restantes--;}}
-  }
+  if(item&&!item.esPrestamo){hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+item.cantidad;}
+  if(lineaSeleccionada===idx)lineaSeleccionada=null;
+  else if(lineaSeleccionada>idx)lineaSeleccionada--;
   carrito.splice(idx,1);renderVentaGrid();renderCarrito();
 };
 
-window.cancelarUltimo=function(){
-  if(tapHistory.length===0){toast('No hay nada que cancelar');return;}
-  const lastId=tapHistory.pop();
-  const idx=carrito.findIndex(c=>c.id===lastId);
-  if(idx<0)return;
-  if(carrito[idx].cantidad>1){carrito[idx].cantidad--;}
-  else{carrito.splice(idx,1);}
-  hieleraLocal[lastId]=(hieleraLocal[lastId]||0)+1;
+window.quitarUno=function(){
+  if(lineaSeleccionada===null)return;
+  const item=carrito[lineaSeleccionada];if(!item)return;
+  if(!item.esPrestamo){
+    if(item.cantidad>1){item.cantidad--;}
+    else{hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;carrito.splice(lineaSeleccionada,1);lineaSeleccionada=null;renderVentaGrid();renderCarrito();return;}
+    hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;
+  }else{
+    if(item.cantidad>1)item.cantidad--;
+    else{carrito.splice(lineaSeleccionada,1);lineaSeleccionada=null;renderVentaGrid();renderCarrito();return;}
+  }
+  lineaSeleccionada=null;
   renderVentaGrid();renderCarrito();
+};
+
+window.toggleModoPago=function(){
+  modoFiado=!modoFiado;
+  const btn=document.getElementById('btn-modo-pago');
+  if(modoFiado){btn.textContent='⚙️ Fiado (sin pago)';btn.style.background='var(--gris)';btn.style.color='var(--gris-texto)';btn.style.borderColor='var(--gris-medio)';}
+  else{btn.textContent='💵 Pago al momento';btn.style.background='var(--verde-light)';btn.style.color='var(--verde-dark)';btn.style.borderColor='var(--verde)';}
+};
+
+window.seleccionarLinea=function(idx){
+  lineaSeleccionada=(lineaSeleccionada===idx)?null:idx;
+  renderCarrito();
 };
 
 function renderCarrito(){
@@ -901,12 +918,13 @@ function renderCarrito(){
   if(carrito.length===0){
     lista.innerHTML='<div class="carrito-vacio">El carrito está vacío</div>';
     titulo.textContent='Carrito (0 líneas)';
-    btnCanc.style.display='none';btnTodo.style.display='none';
+    const bq=document.getElementById('btn-quitar1');if(bq)bq.style.display='none';btnTodo.style.display='none';
     btnCerrar.disabled=true;totalEl.textContent='$0.00';return;
   }
 
   titulo.textContent=`Carrito (${carrito.length} línea${carrito.length!==1?'s':''})`;
-  btnCanc.style.display=tapHistory.length>0?'':'none';
+  const btnQ=document.getElementById('btn-quitar1');
+  if(btnQ)btnQ.style.display=lineaSeleccionada!==null?'':'none';
   btnTodo.style.display='';
   btnCerrar.disabled=false;
 
@@ -914,11 +932,16 @@ function renderCarrito(){
   lista.innerHTML='';
   carrito.forEach((item,idx)=>{
     total+=item.precio*item.cantidad;
-    const div=document.createElement('div');div.className='carrito-item'+(item.pagado?' pagado':'');
-    const checkHtml=`<div class="carrito-checkbox${item.pagado?' checked':''}" onclick="togglePagado(${idx})">${item.pagado?'✓':''}</div>`;
+    const seleccionado=(lineaSeleccionada===idx);
+    const div=document.createElement('div');
+    div.className='carrito-item'+(item.pagado?' pagado':'')+(seleccionado?' seleccionado':'');
+    // Casilla izquierda = selección para Quitar 1
+    const selHtml=`<div class="carrito-checkbox${seleccionado?' sel-activo':''}" onclick="seleccionarLinea(${idx})">${seleccionado?'◉':'○'}</div>`;
     const imgHtml=item.esPrestamo?'🤝':item.imagen?`<img src="${item.imagen}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0">`:'🧊';
     const sub=item.esPrestamo?`${clienteVenta?.nombre||''} · x1 · $${item.precio}c/u`:`${clienteVenta?.nombre||''} · x${item.cantidad} · $${item.precio}c/u`;
-    div.innerHTML=`${checkHtml}<span style="font-size:22px;flex-shrink:0">${imgHtml}</span><div class="carrito-info"><div class="carrito-nombre">${item.nombre}</div><div class="carrito-sub">${sub}</div></div><div class="carrito-monto">$${(item.precio*item.cantidad).toFixed(2)}</div><button class="carrito-del" onclick="eliminarLineaCarrito(${idx})">🗑️</button>`;
+    // Botón pagado (✓ círculo) a la derecha
+    const pagadoHtml=`<div class="carrito-pagado${item.pagado?' pagado-activo':''}" onclick="togglePagado(${idx})" title="${item.pagado?'Pagado':'Fiado'}">${item.pagado?'✓':'○'}</div>`;
+    div.innerHTML=`${selHtml}<span style="font-size:22px;flex-shrink:0">${imgHtml}</span><div class="carrito-info"><div class="carrito-nombre">${item.nombre}</div><div class="carrito-sub">${sub}</div></div><div class="carrito-monto">$${(item.precio*item.cantidad).toFixed(2)}</div>${pagadoHtml}<button class="carrito-del" onclick="eliminarLineaCarrito(${idx})">🗑️</button>`;
     lista.appendChild(div);
   });
   totalEl.textContent=`$${total.toFixed(2)}`;
@@ -927,7 +950,7 @@ function renderCarrito(){
 window.cerrarVenta=async function(){
   if(!clienteVenta||carrito.length===0)return;
   const btn=document.getElementById('btn-cerrar-venta');
-  btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
+  btn.disabled=true;setSync('syncing');
   try{
     const ahora=new Date().toISOString();
     const ventaId='v_'+Date.now();
@@ -997,7 +1020,7 @@ window.cerrarVenta=async function(){
   }catch(err){
     console.error(err);
     toast('⚠️ Error al cerrar la venta');
-    btn.disabled=false;btn.textContent='Cerrar Venta';
+    btn.disabled=false;
   }finally{
     setSync(navigator.onLine?'online':'offline');
   }
