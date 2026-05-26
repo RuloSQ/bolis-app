@@ -347,8 +347,59 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
   </div>
 </div>
 
+<!-- ═══ HISTORIAL ═══ -->
+<div id="pantalla-historial" class="pantalla">
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">📋</span><span class="header-title">Historial</span><div class="sync-dot" id="syncDot5"></div></div>
+  <div class="contenido">
+    <div class="hist-summary">
+      <span class="hist-count" id="hist-count">Cargando…</span>
+      <span class="hist-total" id="hist-total"></span>
+    </div>
+    <div id="lista-historial"></div>
+    <button class="hist-cargar-mas" id="btn-cargar-mas" style="display:none" onclick="cargarMasHistorial()">Cargar registros anteriores…</button>
+  </div>
+</div>
+
+<!-- ═══ CONSULTAS ═══ -->
+<div id="pantalla-consultas" class="pantalla">
+  <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">🔍</span><span class="header-title">Consultas</span><div class="sync-dot" id="syncDot6"></div></div>
+  <div class="contenido">
+    <div style="font-size:22px;font-weight:800;margin-bottom:16px;">📊 Consulta</div>
+    <div class="cons-form">
+      <div class="hist-field" style="margin-bottom:12px;">
+        <label>Tipo de consulta</label>
+        <select class="ventas-select" id="cons-tipo" onchange="onConsTipoChange()">
+          <option value="general">General (todos los productos)</option>
+          <option value="cliente">Por cliente</option>
+          <option value="sabor">Por sabor</option>
+        </select>
+      </div>
+      <div class="hist-field" id="cons-campo-cliente" style="display:none;margin-bottom:12px;">
+        <label>Cliente</label>
+        <select class="ventas-select" id="cons-cliente"></select>
+      </div>
+      <div class="hist-field" id="cons-campo-sabor" style="display:none;margin-bottom:12px;">
+        <label>Sabor</label>
+        <select class="ventas-select" id="cons-sabor"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="hist-field" style="margin:0">
+          <label>Desde</label>
+          <input type="date" class="ventas-select" id="cons-desde" style="padding:12px 10px;font-size:15px;">
+        </div>
+        <div class="hist-field" style="margin:0">
+          <label>Hasta</label>
+          <input type="date" class="ventas-select" id="cons-hasta" style="padding:12px 10px;font-size:15px;">
+        </div>
+      </div>
+      <button class="btn btn-primario btn-full" onclick="ejecutarConsulta()">🔍 Consultar</button>
+    </div>
+    <div id="cons-resultados" style="margin-top:16px;"></div>
+  </div>
+</div>
+
 <!-- PLACEHOLDERS -->
-<div id="pantalla-importar" class="pantalla">
+<div id="pantalla-importar"  class="pantalla">
   <div class="header"><button class="header-back" onclick="ir('menu')">←</button><span class="header-icon">📥</span><span class="header-title">Importar / Mantenimiento</span></div>
   <div class="contenido">
 
