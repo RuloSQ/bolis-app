@@ -746,7 +746,14 @@ async function cargarHielera(){
   contenido.appendChild(hero);
   const btnsRow=document.createElement('div');btnsRow.className='hielera-btns';
   const btnLlenar=document.createElement('button');btnLlenar.className='btn btn-primario';btnLlenar.style.flex='1';btnLlenar.innerHTML='❄️ Llenar Hielera';btnLlenar.disabled=tieneStock;
-  btnLlenar.onclick=()=>{if(tieneStock)document.getElementById('modal-hielera-warning').classList.add('abierto');else mostrarFormaCarga();};
+  btnLlenar.onclick=()=>{
+    if(tieneStock){document.getElementById('modal-hielera-warning').classList.add('abierto');}
+    else{
+      // Formulario ya visible, solo desplazar al botón guardar
+      const btnGuardar=document.getElementById('btnLlenarHielera');
+      if(btnGuardar)btnGuardar.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  };
   const btnVaciar=document.createElement('button');btnVaciar.className='btn btn-rojo-outline';btnVaciar.style.flex='1';btnVaciar.innerHTML='🗑️ Vaciar y Reportar';btnVaciar.disabled=!tieneStock;btnVaciar.onclick=mostrarReporte;
   btnsRow.appendChild(btnLlenar);btnsRow.appendChild(btnVaciar);contenido.appendChild(btnsRow);
   if(!tieneStock)mostrarFormaCarga();else renderStockActual(contenido);
@@ -796,17 +803,33 @@ function renderStockActual(contenido){
   const v=document.getElementById('stock-actual');if(v)v.remove();
   const wrap=document.createElement('div');wrap.id='stock-actual';
   const titulo=document.createElement('p');titulo.className='seccion-titulo';titulo.textContent='Stock actual';wrap.appendChild(titulo);
-  hieleraCache.forEach(h=>{
-    const itemWrap=document.createElement('div');itemWrap.className='stock-item';itemWrap.id='stock-item-'+h.idProducto;
+
+  // Combinar: productos en hielera + productos en catálogo con 0 (difuminados)
+  const enHielera=new Set(hieleraCache.map(h=>h.idProducto));
+  const cargados=hieleraCache.slice();
+  // Agregar los que no se cargaron (quedaron en 0)
+  productosCache.forEach(p=>{
+    if(!enHielera.has(p.id)){
+      cargados.push({idProducto:p.id,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:0,cantidadActual:0,_sinCargar:true});
+    }
+  });
+
+  cargados.forEach(h=>{
+    const sinCargar=h._sinCargar||false;
+    const itemWrap=document.createElement('div');
+    itemWrap.className='stock-item';
+    itemWrap.id='stock-item-'+h.idProducto;
+    if(sinCargar)itemWrap.style.opacity='0.45';
     const row=document.createElement('div');row.className='stock-item-row';
     const imgDiv=document.createElement('div');imgDiv.className='stock-item-img';
     if(h.imagen){const img=document.createElement('img');img.src=h.imagen;imgDiv.appendChild(img);}else imgDiv.textContent='🧊';
     const nombre=document.createElement('span');nombre.className='stock-item-nombre';nombre.textContent=h.nombre;
-    const cant=document.createElement('span');cant.className='stock-item-cant'+(h.cantidadActual===0?' cero':'');cant.id='cant-'+h.idProducto;cant.textContent=h.cantidadActual;
+    const cant=document.createElement('span');cant.className='stock-item-cant cero';cant.id='cant-'+h.idProducto;cant.textContent='0';
     const btnAdd=document.createElement('button');btnAdd.className='stock-item-add';btnAdd.innerHTML='＋';btnAdd.onclick=()=>togglePanel(h.idProducto);
+    if(h.cantidadActual>0){cant.className='stock-item-cant';cant.textContent=h.cantidadActual;}
     row.appendChild(imgDiv);row.appendChild(nombre);row.appendChild(cant);row.appendChild(btnAdd);itemWrap.appendChild(row);
     const panel=document.createElement('div');panel.className='stock-agregar-panel';panel.id='panel-'+h.idProducto;panel.style.display='none';
-    panel.innerHTML=`<span class="stock-agregar-label">¿Cuántos agregas a ${h.nombre}?</span><input type="number" class="stock-agregar-input" id="add-input-${h.idProducto}" value="0" min="0" inputmode="numeric"><button class="stock-agregar-btn" onclick="agregarStock('${h.idProducto}')">Agregar</button>`;
+    panel.innerHTML=`<span class="stock-agregar-label">¿Cuántos agregas a ${h.nombre}?</span><input type="number" class="stock-agregar-input" id="add-input-${h.idProducto}" value="0" min="0" inputmode="numeric"><button class="stock-agregar-btn" onclick="agregarStock('${h.idProducto}',${sinCargar})">Agregar</button>`;
     panel.querySelector('input').addEventListener('focus',e=>{if(e.target.value==='0')e.target.value='';});
     panel.querySelector('input').addEventListener('blur',e=>{if(e.target.value==='')e.target.value='0';});
     itemWrap.appendChild(panel);wrap.appendChild(itemWrap);
@@ -819,21 +842,38 @@ function togglePanel(idProducto){
   const abierto=panel.style.display!=='none';panel.style.display=abierto?'none':'flex';itemExpandido=abierto?null:idProducto;
   if(!abierto){const input=document.getElementById('add-input-'+idProducto);if(input){input.value='';setTimeout(()=>input.focus(),100);}}
 }
-window.agregarStock=async function(idProducto){
+window.agregarStock=async function(idProducto, sinCargar=false){
   const input=document.getElementById('add-input-'+idProducto);const cant=parseInt(input.value)||0;
   if(cant<=0){toast('⚠️ Ingresa una cantidad mayor a 0');return;}
   setSync('syncing');
   try{
-    const ref=doc(db,'hielera',idProducto);const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ No encontrado');return;}
-    const data=snap.data();const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
-    await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
-    const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
-    if(idx>=0){hieleraCache[idx].cantidadInicial=ni;hieleraCache[idx].cantidadActual=na;}
-    const cantEl=document.getElementById('cant-'+idProducto);if(cantEl){cantEl.textContent=na;cantEl.className='stock-item-cant'+(na===0?' cero':'');}
-    const total=hieleraCache.reduce((s,h)=>s+h.cantidadActual,0);const heroNum=document.querySelector('.hielera-hero-num');if(heroNum)heroNum.textContent=total;
+    const ref=doc(db,'hielera',idProducto);
+    let nombre='';
+    if(sinCargar){
+      // Crear documento nuevo en hielera para este producto
+      const p=productosCache.find(x=>x.id===idProducto);
+      if(!p){toast('⚠️ Producto no encontrado');return;}
+      nombre=p.nombre;
+      await setDoc(ref,{idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
+      hieleraCache.push({idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
+    }else{
+      const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ No encontrado');return;}
+      const data=snap.data();const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
+      nombre=data.nombre;
+      await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
+      const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
+      if(idx>=0){hieleraCache[idx].cantidadInicial=ni;hieleraCache[idx].cantidadActual=na;}
+    }
+    const cantEl=document.getElementById('cant-'+idProducto);
+    if(cantEl){cantEl.textContent=cant;cantEl.className='stock-item-cant';}
+    // Quitar difuminado del item
+    const itemWrap=document.getElementById('stock-item-'+idProducto);
+    if(itemWrap)itemWrap.style.opacity='1';
+    const total=hieleraCache.reduce((s,h)=>s+h.cantidadActual,0);
+    const heroNum=document.querySelector('.hielera-hero-num');if(heroNum)heroNum.textContent=total;
     const panel=document.getElementById('panel-'+idProducto);if(panel)panel.style.display='none';itemExpandido=null;input.value='0';
-    toast(`✅ +${cant} ${hieleraCache[idx]?.nombre||''}`);
-  }catch(err){toast('⚠️ Error al agregar stock');}
+    toast(`✅ +${cant} ${nombre}`);
+  }catch(err){console.error(err);toast('⚠️ Error al agregar stock');}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
 async function mostrarReporte(){
