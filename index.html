@@ -1195,7 +1195,21 @@ async function cargarHistorial(reiniciar=true){
     historialCache=[...historialCache,...nuevos];
     historialLastDoc=snap.docs.length===HIST_PAGE?snap.docs[snap.docs.length-1]:null;
     if(btnMas)btnMas.style.display=historialLastDoc?'':'none';
-  }catch(e){console.error(e);}
+  }catch(e){
+    console.error('Error historial:',e);
+    // Si falla orderBy (índice pendiente), intentar sin ordenar
+    try{
+      const snap2=await getDocs(collection(db,'historial'));
+      const todos=snap2.docs.map(d=>({id:d.id,...d.data()}));
+      todos.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      historialCache=todos.slice(0,HIST_PAGE);
+      if(btnMas)btnMas.style.display='none';
+    }catch(e2){
+      console.error('Error fallback historial:',e2);
+      if(lista)lista.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><p>Error al cargar: ${e2.message||e2.code||'revisa la consola'}</p></div>`;
+      return;
+    }
+  }
   renderHistorial();
 }
 
@@ -1492,9 +1506,17 @@ window.ejecutarConsulta=async function(){
   setSync('syncing');
   try{
     // Traer registros del rango (excluir préstamos)
-    const q=query(collection(db,'historial'),where('fecha','>=',desde),where('fecha','<=',hasta));
-    const snap=await getDocs(q);
-    let registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
+    let registros=[];
+    try{
+      const q=query(collection(db,'historial'),where('fecha','>=',desde),where('fecha','<=',hasta));
+      const snap=await getDocs(q);
+      registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
+    }catch(qErr){
+      // Fallback: traer todo y filtrar en JS
+      console.warn('Query con where falló, usando fallback:',qErr);
+      const snap2=await getDocs(collection(db,'historial'));
+      registros=snap2.docs.map(d=>d.data()).filter(r=>!r.esPrestamo&&r.fecha>=desde&&r.fecha<=hasta);
+    }
 
     if(tipo==='general'){
       // Agrupar por producto
@@ -1552,8 +1574,8 @@ window.ejecutarConsulta=async function(){
       resultados.innerHTML=html;
     }
   }catch(err){
-    console.error(err);
-    resultados.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><p>Error al consultar. Verifica tu conexión.</p></div>';
+    console.error('Error consulta:',err);
+    resultados.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><p>Error: ${err.message||err.code||'verifica tu conexión'}</p></div>`;
   }finally{
     setSync(navigator.onLine?'online':'offline');
   }
