@@ -1671,8 +1671,11 @@ window.previsualizarCSV=async function(e){
       if(!fechaStr||!cliente||!producto){errores.push(i+1);return;}
       const partes=fechaStr.split(' ');
       const dateParts=partes[0].split('/');
-      const timePart=partes[1]||'00:00:00';
       if(dateParts.length!==3){errores.push(i+1);return;}
+      // Normalizar hora a 2 dígitos (8:51:45 -> 08:51:45)
+      let timePart=partes[1]||'00:00:00';
+      const tParts=timePart.split(':');
+      timePart=tParts.map(t=>t.padStart(2,'0')).join(':');
       const iso=`${dateParts[2]}-${dateParts[1].padStart(2,'0')}-${dateParts[0].padStart(2,'0')}T${timePart}`;
       const fecha=new Date(iso);
       if(isNaN(fecha.getTime())){errores.push(i+1);return;}
