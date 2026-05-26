@@ -546,7 +546,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore, enableIndexedDbPersistence,
   collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc,
-  query, orderBy, writeBatch, where, serverTimestamp, limit, startAfter
+  query, orderBy, writeBatch, where, serverTimestamp, limit, startAfter, limitToLast, endBefore
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1186,29 +1186,27 @@ async function cargarHistorial(reiniciar=true){
   try{
     let q;
     if(historialLastDoc){
-      q=query(collection(db,'historial'),orderBy('fecha','desc'),startAfter(historialLastDoc),limit(HIST_PAGE));
+      // Cargar página anterior (más antigua)
+      q=query(collection(db,'historial'),orderBy('fecha','asc'),endBefore(historialLastDoc),limitToLast(HIST_PAGE));
     }else{
-      q=query(collection(db,'historial'),orderBy('fecha','desc'),limit(HIST_PAGE));
+      // Cargar los más recientes usando limitToLast con orden ascendente
+      q=query(collection(db,'historial'),orderBy('fecha','asc'),limitToLast(HIST_PAGE));
     }
     const snap=await getDocs(q);
-    const nuevos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    historialCache=[...historialCache,...nuevos];
-    historialLastDoc=snap.docs.length===HIST_PAGE?snap.docs[snap.docs.length-1]:null;
+    // Los docs llegan en orden asc, los invertimos para mostrar más reciente primero
+    const nuevos=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    if(reiniciar){
+      historialCache=nuevos;
+    }else{
+      historialCache=[...historialCache,...nuevos];
+    }
+    // Hay más si llegaron HIST_PAGE docs
+    historialLastDoc=snap.docs.length===HIST_PAGE?snap.docs[0]:null;
     if(btnMas)btnMas.style.display=historialLastDoc?'':'none';
   }catch(e){
     console.error('Error historial:',e);
-    // Si falla orderBy (índice pendiente), intentar sin ordenar
-    try{
-      const snap2=await getDocs(collection(db,'historial'));
-      const todos=snap2.docs.map(d=>({id:d.id,...d.data()}));
-      todos.sort((a,b)=>b.fecha.localeCompare(a.fecha));
-      historialCache=todos.slice(0,HIST_PAGE);
-      if(btnMas)btnMas.style.display='none';
-    }catch(e2){
-      console.error('Error fallback historial:',e2);
-      if(lista)lista.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><p>Error al cargar: ${e2.message||e2.code||'revisa la consola'}</p></div>`;
-      return;
-    }
+    if(lista)lista.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><p>Error al cargar el historial.<br><small style="color:var(--gris-texto)">${e.message||e.code||''}</small></p></div>`;
+    return;
   }
   renderHistorial();
 }
@@ -1505,18 +1503,16 @@ window.ejecutarConsulta=async function(){
   resultados.innerHTML='<div class="spinner"><div class="spin"></div> Consultando…</div>';
   setSync('syncing');
   try{
-    // Traer registros del rango (excluir préstamos)
+    // Traer registros del rango usando índice ascendente
     let registros=[];
-    try{
-      const q=query(collection(db,'historial'),where('fecha','>=',desde),where('fecha','<=',hasta));
-      const snap=await getDocs(q);
-      registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
-    }catch(qErr){
-      // Fallback: traer todo y filtrar en JS
-      console.warn('Query con where falló, usando fallback:',qErr);
-      const snap2=await getDocs(collection(db,'historial'));
-      registros=snap2.docs.map(d=>d.data()).filter(r=>!r.esPrestamo&&r.fecha>=desde&&r.fecha<=hasta);
-    }
+    const q=query(
+      collection(db,'historial'),
+      orderBy('fecha','asc'),
+      where('fecha','>=',desde),
+      where('fecha','<=',hasta)
+    );
+    const snap=await getDocs(q);
+    registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
 
     if(tipo==='general'){
       // Agrupar por producto
