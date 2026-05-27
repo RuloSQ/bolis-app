@@ -424,6 +424,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
       <button class="btn btn-rojo btn-sm" onclick="pedirResetTotal()">↺ Reset total</button>
     </div>
 
+    <!-- EXPORTAR CSV -->
+    <p class="seccion-titulo">Exportar CSV</p>
+    <div style="background:#fff;border-radius:var(--radio);padding:16px;margin-bottom:20px;box-shadow:var(--sombra);">
+      <div style="font-size:15px;color:var(--gris-texto);line-height:1.6;margin-bottom:14px;">
+        Descarga todo el historial de ventas en formato CSV compatible con versiones futuras de Bolis App.
+      </div>
+      <button class="btn btn-primario btn-full" onclick="exportarCSV()">⬇️ Exportar historial completo</button>
+    </div>
+
     <!-- IMPORTAR CSV -->
     <p class="seccion-titulo">Importar CSV</p>
     <div class="card" style="background:#fff;border-radius:var(--radio);padding:16px;margin-bottom:12px;box-shadow:var(--sombra);">
@@ -1625,7 +1634,11 @@ window.ejecutarConsulta=async function(){
     else if(tipo==='sabor'){
       const idSabor=document.getElementById('cons-sabor')?.value;
       const nombreSabor=productosCache.find(p=>p.id===idSabor)?.nombre||idSabor;
-      const filtrados=registros.filter(r=>r.idProducto===idSabor);
+      // Filtrar por nombre (cubre registros importados que tienen idProducto='importado')
+      const filtrados=registros.filter(r=>
+        r.idProducto===idSabor||
+        r.nombreProducto?.toLowerCase().trim()===nombreSabor.toLowerCase().trim()
+      );
       // Agrupar por cliente
       const mapa={};
       filtrados.forEach(r=>{
@@ -2002,6 +2015,58 @@ window.ejecutarImport=async function(){
     document.getElementById('importar-progreso').style.display='none';
     toast('⚠️ Error durante la importación');
   }finally{
+    setSync(navigator.onLine?'online':'offline');
+  }
+};
+
+// ══════════════════════════════════════
+//  EXPORTAR CSV
+// ══════════════════════════════════════
+window.exportarCSV=async function(){
+  const btn=document.querySelector('[onclick="exportarCSV()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Cargando historial…';}
+  setSync('syncing');
+  try{
+    // Traer todo el historial ordenado por fecha
+    const q=query(collection(db,'historial'),orderBy('fecha','asc'));
+    const snap=await getDocs(q);
+    const registros=snap.docs.map(d=>d.data());
+
+    if(registros.length===0){toast('No hay registros para exportar');return;}
+
+    // Construir CSV con el mismo formato que Google Sheets original:
+    // fecha, cliente, sabor, cantidad, pagado, precio unitario, monto total
+    const filas=registros.map(r=>{
+      const fecha=new Date(r.fecha);
+      const dia=String(fecha.getDate()).padStart(2,'0');
+      const mes=String(fecha.getMonth()+1).padStart(2,'0');
+      const anio=fecha.getFullYear();
+      const horas=String(fecha.getHours()).padStart(2,'0');
+      const mins=String(fecha.getMinutes()).padStart(2,'0');
+      const segs=String(fecha.getSeconds()).padStart(2,'0');
+      const fechaStr=`${dia}/${mes}/${anio} ${horas}:${mins}:${segs}`;
+      const pagado=r.pagado?'TRUE':'FALSE';
+      const precio=`$${(r.precioUnitario||0).toFixed(0)}`;
+      const monto=`$${(r.monto||0).toFixed(0)}`;
+      return `${fechaStr},${r.nombreCliente},${r.nombreProducto},${r.cantidad},${pagado},${precio},${monto},,`;
+    });
+
+    const nl='\n';const csvContent=filas.join(nl);
+    const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const hoy=new Date();
+    const fechaArchivo=`${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,'0')}${String(hoy.getDate()).padStart(2,'0')}`;
+    a.href=url;
+    a.download=`bolis_historial_${fechaArchivo}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`✅ ${registros.length} registros exportados`);
+  }catch(err){
+    console.error(err);
+    toast('⚠️ Error al exportar');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='⬇️ Exportar historial completo';}
     setSync(navigator.onLine?'online':'offline');
   }
 };
