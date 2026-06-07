@@ -77,6 +77,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 .producto-nombre{font-size:18px;font-weight:700;}
 .producto-precio{font-size:16px;color:var(--azul);font-weight:700;margin-top:2px;}
 .producto-acciones{display:flex;gap:8px;}
+.exist-badge{padding:5px 12px;border-radius:50px;font-size:14px;font-weight:800;white-space:nowrap;}
+.exist-verde{background:#dcfce7;color:#16a34a;}
+.exist-amarillo{background:#fef3c7;color:#b45309;}
+.exist-rojo{background:#fee2e2;color:#dc2626;}
+.exist-gris{background:var(--gris);color:var(--gris-texto);}
 
 /* HIELERA */
 .hielera-hero{background:linear-gradient(135deg,var(--azul-dark),var(--azul));border-radius:var(--radio);padding:20px;margin-bottom:16px;color:#fff;}
@@ -476,6 +481,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     <input type="file" id="inputImagen" accept="image/*" onchange="cargarImagen(event)">
     <div class="field"><label>Nombre del sabor</label><input type="text" id="prod-nombre" placeholder="Ej: Nutella, Oreo, Coco..."></div>
     <div class="field"><label>Precio ($)</label><input type="number" id="prod-precio" placeholder="0" inputmode="decimal" min="0"></div>
+    <div class="field"><label>Existencia en inventario</label><input type="number" id="prod-existencia" placeholder="0" inputmode="numeric" min="0"></div>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button class="btn btn-gris" style="flex:1" onclick="cerrarModal('modal-producto')">Cancelar</button>
       <button class="btn btn-primario" style="flex:2" id="btnGuardarProducto" onclick="guardarProducto()">Guardar</button>
@@ -678,6 +684,7 @@ window.abrirModalProducto=function(prod=null){
   imagenBase64=null;productoEditandoId=prod?prod.id:null;
   document.getElementById('prod-nombre').value=prod?prod.nombre:'';
   document.getElementById('prod-precio').value=prod?prod.precio:'';
+  document.getElementById('prod-existencia').value=prod?(prod.existencia||0):0;
   document.getElementById('modal-producto-titulo-texto').textContent=prod?'Editar producto':'Nuevo producto';
   const preview=document.getElementById('imgPreview'),emoji=document.getElementById('imgEmoji');
   const vieja=preview.querySelector('img');if(vieja)vieja.remove();
@@ -710,7 +717,8 @@ window.guardarProducto=async function(){
   if(isNaN(precio)||precio<0){toast('⚠️ Precio inválido');return;}
   btn.disabled=true;btn.textContent='Guardando…';setSync('syncing');
   try{
-    const obj={nombre,precio,imagen:imagenBase64||null};
+    const existencia=parseInt(document.getElementById('prod-existencia').value)||0;
+    const obj={nombre,precio,imagen:imagenBase64||null,existencia};
     if(productoEditandoId){await updateDoc(doc(db,'productos',productoEditandoId),obj);toast('✅ Producto actualizado');}
     else{await addDoc(collection(db,'productos'),obj);toast('✅ Producto guardado');}
     cerrarModal('modal-producto');await cargarProductos();
@@ -728,15 +736,41 @@ async function cargarProductos(){
   lista.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
   try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(err){productosCache=[];}
   if(productosCache.length===0){lista.innerHTML=`<div class="empty"><div class="empty-icon">🏷️</div><p>No hay productos.<br>Toca <strong>＋</strong> para agregar.</p></div>`;return;}
+  // Contar actividad del último mes por producto
+  const conteo={};
+  try{
+    const hace30=new Date();hace30.setDate(hace30.getDate()-30);
+    const q2=query(collection(db,'historial'),orderBy('fecha','asc'),where('fecha','>=',hace30.toISOString()));
+    const snap2=await getDocs(q2);
+    snap2.docs.forEach(d=>{
+      const r=d.data();
+      const key=r.idProducto&&r.idProducto!=='importado'?r.idProducto:r.nombreProducto;
+      if(key)conteo[key]=(conteo[key]||0)+1;
+    });
+  }catch(e){}
+  // Ordenar por actividad del mes
+  const ordenados=[...productosCache].sort((a,b)=>{
+    const ca=conteo[a.id]||conteo[a.nombre]||0;
+    const cb=conteo[b.id]||conteo[b.nombre]||0;
+    if(cb!==ca)return cb-ca;
+    return a.nombre.localeCompare(b.nombre);
+  });
   lista.innerHTML=`<p class="seccion-titulo">${productosCache.length} producto${productosCache.length!==1?'s':''}</p>`;
-  productosCache.forEach(p=>{
+  ordenados.forEach(p=>{
+    const exist=p.existencia;
+    let badgeClass='exist-gris',badgeText='— sin registro';
+    if(exist!==undefined&&exist!==null){
+      if(exist===0){badgeClass='exist-rojo';badgeText='0 en stock';}
+      else if(exist<=10){badgeClass='exist-amarillo';badgeText=`${exist} en stock`;}
+      else{badgeClass='exist-verde';badgeText=`${exist} en stock`;}
+    }
     const item=document.createElement('div');item.className='producto-item';
     const imgDiv=document.createElement('div');imgDiv.className='producto-img';
     if(p.imagen){const img=document.createElement('img');img.src=p.imagen;imgDiv.appendChild(img);}else imgDiv.textContent='🧊';
     const info=document.createElement('div');info.className='producto-info';
     info.innerHTML=`<div class="producto-nombre">${p.nombre}</div><div class="producto-precio">$${Number(p.precio).toFixed(2)}</div>`;
     const acc=document.createElement('div');acc.className='producto-acciones';
-    acc.innerHTML=`<button class="btn btn-sm btn-gris" onclick="editarProducto('${p.id}')">✏️</button><button class="btn btn-sm btn-rojo" onclick="pedirEliminar('${p.id}')">🗑️</button>`;
+    acc.innerHTML=`<span class="exist-badge ${badgeClass}">${badgeText}</span><button class="btn btn-sm btn-gris" onclick="editarProducto('${p.id}')">✏️</button><button class="btn btn-sm btn-rojo" onclick="pedirEliminar('${p.id}')">🗑️</button>`;
     item.appendChild(imgDiv);item.appendChild(info);item.appendChild(acc);lista.appendChild(item);
   });
 }
@@ -800,14 +834,31 @@ window.ejecutarLlenarHielera=async function(){
     const batch=writeBatch(db);
     const snapActual=await getDocs(collection(db,'hielera'));snapActual.docs.forEach(d=>batch.delete(d.ref));
     let total=0;
+    const avisos=[];
+    const inventarioBatch=writeBatch(db);
     productosCache.forEach(p=>{
       const input=hielera_cantInputs[p.id];if(!input)return;
-      const cant=parseInt(input.value)||0;if(cant>0){
-        const ref=doc(db,'hielera',p.id);
-        batch.set(ref,{idProducto:p.id,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});total+=cant;
+      let cant=parseInt(input.value)||0;if(cant<=0)return;
+      // Validar contra inventario si existe
+      const existencia=p.existencia;
+      if(existencia!==undefined&&existencia!==null){
+        if(existencia===0){avisos.push(`${p.nombre}: sin existencia, no se cargó`);return;}
+        if(cant>existencia){avisos.push(`${p.nombre}: pediste ${cant}, solo había ${existencia}`);cant=existencia;}
+        // Descontar del inventario
+        const pRef=doc(db,'productos',p.id);
+        inventarioBatch.update(pRef,{existencia:existencia-cant});
+        const idx=productosCache.findIndex(x=>x.id===p.id);
+        if(idx>=0)productosCache[idx].existencia=existencia-cant;
       }
+      const ref=doc(db,'hielera',p.id);
+      batch.set(ref,{idProducto:p.id,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
+      total+=cant;
     });
-    await batch.commit();toast(`✅ Hielera cargada — ${total} productos`);await cargarHielera();
+    await batch.commit();
+    await inventarioBatch.commit();
+    if(avisos.length>0)toast(`⚠️ ${avisos.join(' | ')}`,4000);
+    else toast(`✅ Hielera cargada — ${total} productos`);
+    await cargarHielera();
   }catch(err){toast('⚠️ Error al guardar la hielera');if(btn){btn.disabled=false;btn.textContent='❄️ Llenar Hielera';}}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
@@ -866,12 +917,34 @@ window.agregarStock=async function(idProducto, sinCargar=false){
       const p=productosCache.find(x=>x.id===idProducto);
       if(!p){toast('⚠️ Producto no encontrado');return;}
       nombre=p.nombre;
+      // Validar inventario
+      if(p.existencia!==undefined&&p.existencia!==null){
+        if(p.existencia===0){toast(`⚠️ ${p.nombre} sin existencia en inventario`);return;}
+        const cantFinal=Math.min(cant,p.existencia);
+        if(cantFinal<cant)toast(`⚠️ Solo había ${p.existencia} de ${p.nombre}, se cargaron ${cantFinal}`,3000);
+        cant=cantFinal;
+        await updateDoc(doc(db,'productos',idProducto),{existencia:p.existencia-cant});
+        const pIdx=productosCache.findIndex(x=>x.id===idProducto);
+        if(pIdx>=0)productosCache[pIdx].existencia=p.existencia-cant;
+      }
       await setDoc(ref,{idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
       hieleraCache.push({idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
     }else{
       const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ No encontrado');return;}
-      const data=snap.data();const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
+      const data=snap.data();
       nombre=data.nombre;
+      // Validar inventario
+      const prod=productosCache.find(x=>x.id===idProducto);
+      if(prod&&prod.existencia!==undefined&&prod.existencia!==null){
+        if(prod.existencia===0){toast(`⚠️ ${nombre} sin existencia en inventario`);return;}
+        const cantFinal=Math.min(cant,prod.existencia);
+        if(cantFinal<cant)toast(`⚠️ Solo había ${prod.existencia} de ${nombre}, se cargaron ${cantFinal}`,3000);
+        cant=cantFinal;
+        await updateDoc(doc(db,'productos',idProducto),{existencia:prod.existencia-cant});
+        const pIdx=productosCache.findIndex(x=>x.id===idProducto);
+        if(pIdx>=0)productosCache[pIdx].existencia=prod.existencia-cant;
+      }
+      const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
       await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
       const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
       if(idx>=0){hieleraCache[idx].cantidadInicial=ni;hieleraCache[idx].cantidadActual=na;}
@@ -906,8 +979,22 @@ window.confirmarVaciar=async function(){
   try{
     const lineas=hieleraCache.map(h=>({idProducto:h.idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidadInicial:h.cantidadInicial,cantidadVendida:h.cantidadInicial-h.cantidadActual,cantidadRegresa:h.cantidadActual,monto:(h.cantidadInicial-h.cantidadActual)*h.precio}));
     await setDoc(doc(db,'config','ultimo_reporte'),{fecha:new Date().toISOString(),lineas,totalVenta:lineas.reduce((s,l)=>s+l.monto,0)});
+    // Restaurar inventario con los que regresan
+    const invBatch=writeBatch(db);
+    for(const l of lineas){
+      if(l.cantidadRegresa>0){
+        const prod=productosCache.find(p=>p.id===l.idProducto);
+        if(prod&&prod.existencia!==undefined&&prod.existencia!==null){
+          const nuevaExist=(prod.existencia||0)+l.cantidadRegresa;
+          invBatch.update(doc(db,'productos',l.idProducto),{existencia:nuevaExist});
+          const idx=productosCache.findIndex(p=>p.id===l.idProducto);
+          if(idx>=0)productosCache[idx].existencia=nuevaExist;
+        }
+      }
+    }
+    await invBatch.commit();
     const batch=writeBatch(db);const snap=await getDocs(collection(db,'hielera'));snap.docs.forEach(d=>batch.delete(d.ref));await batch.commit();
-    cerrarModal('modal-reporte');toast('🧊 Hielera vaciada');await cargarHielera();
+    cerrarModal('modal-reporte');toast('🧊 Hielera vaciada — inventario actualizado');await cargarHielera();
   }catch(err){toast('⚠️ Error al vaciar');}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
