@@ -772,8 +772,9 @@ async function cargarProductos(){
     if(p.imagen){const img=document.createElement('img');img.src=p.imagen;imgDiv.appendChild(img);}else imgDiv.textContent='🧊';
     const info=document.createElement('div');info.className='producto-info';
     info.innerHTML=`<div class="producto-nombre">${p.nombre}</div><div class="producto-precio">$${Number(p.precio).toFixed(2)}</div>`;
+    info.innerHTML+=`<div class="exist-badge ${badgeClass}" style="margin-top:5px;display:inline-block;">${badgeText}</div>`;
     const acc=document.createElement('div');acc.className='producto-acciones';
-    acc.innerHTML=`<span class="exist-badge ${badgeClass}">${badgeText}</span><button class="btn btn-sm btn-gris" onclick="editarProducto('${p.id}')">✏️</button><button class="btn btn-sm btn-rojo" onclick="pedirEliminar('${p.id}')">🗑️</button>`;
+    acc.innerHTML=`<button class="btn btn-sm btn-gris" onclick="editarProducto('${p.id}')">✏️</button><button class="btn btn-sm btn-rojo" onclick="pedirEliminar('${p.id}')">🗑️</button>`;
     item.appendChild(imgDiv);item.appendChild(info);item.appendChild(acc);lista.appendChild(item);
   });
 }
@@ -1186,11 +1187,6 @@ function renderVentaGrid(){
   grid.innerHTML='';
   const productosEnHielera=hieleraCache.filter(h=>h.cantidadActual>0||(hieleraLocal[h.idProducto]||0)>0);
   const activos=hieleraCache.filter(h=>(hieleraLocal[h.idProducto]||0)>0);
-  if(hieleraCache.length===0){
-    grid.style.gridTemplateColumns='1fr';
-    grid.innerHTML='<p style="color:var(--gris-texto);font-size:15px;text-align:center;padding:16px">La hielera está vacía.<br>Cárgala antes de vender.</p>';
-    return;
-  }
   grid.style.gridTemplateColumns='1fr 1fr 1fr';
   if(modoCongelador){
     // Modo congelador: mostrar productos con existencia > 0
@@ -1207,6 +1203,11 @@ function renderVentaGrid(){
       grid.appendChild(card);
     });
   }else{
+    if(hieleraCache.length===0){
+      grid.style.gridTemplateColumns='1fr';
+      grid.innerHTML='<p style="color:var(--gris-texto);font-size:15px;text-align:center;padding:16px">La hielera está vacía.<br>Cárgala antes de vender.</p>';
+      return;
+    }
     hieleraCache.forEach(h=>{
       const stockLocal=hieleraLocal[h.idProducto]||0;
       if(stockLocal===0)return;
@@ -1292,15 +1293,19 @@ window.quitarUno=function(){
   renderVentaGrid();renderCarrito();
 };
 
-window.toggleModoOrigen=function(){
+window.toggleModoOrigen=async function(){
   if(carrito.length>0){toast('⚠️ Vacía el carrito antes de cambiar el origen');return;}
   modoCongelador=!modoCongelador;
   const btn=document.getElementById('btn-modo-origen');
   if(modoCongelador){
     btn.textContent='🏠 Congelador';btn.style.background='var(--naranja-light)';btn.style.color='#92400e';btn.style.borderColor='var(--naranja)';
-    // Congelador: pago al momento por default
     if(modoFiado){toggleModoPago();}
-    // Inicializar stock local del congelador
+    // Refrescar productosCache para tener existencias actualizadas
+    try{
+      const q=query(collection(db,'productos'),orderBy('nombre'));
+      const snap=await getDocs(q);
+      productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){}
     congeladorLocal={};
     productosCache.forEach(p=>{if((p.existencia||0)>0)congeladorLocal[p.id]=p.existencia;});
   }else{
