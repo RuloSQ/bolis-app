@@ -297,7 +297,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
     <div class="ventas-seccion">
       <div class="ventas-cliente-row">
         <span class="ventas-label">Cliente</span>
-        <button id="btn-modo-pago" onclick="toggleModoPago()" style="background:var(--gris);border:2px solid var(--gris-medio);border-radius:50px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--gris-texto);cursor:pointer;">⚙️ Fiado (sin pago)</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          <button id="btn-modo-origen" onclick="toggleModoOrigen()" style="background:var(--azul-light);border:2px solid var(--azul);border-radius:50px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--azul-dark);cursor:pointer;">🧊 Hielera</button>
+          <button id="btn-modo-pago" onclick="toggleModoPago()" style="background:var(--gris);border:2px solid var(--gris-medio);border-radius:50px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--gris-texto);cursor:pointer;">⚙️ Fiado</button>
+        </div>
       </div>
       <select class="ventas-select" id="ventas-cliente-select" onchange="onClienteChange()">
         <option value="">Selecciona un cliente...</option>
@@ -1097,8 +1100,10 @@ window.confirmarEliminarCliente=async function(){
 let carrito=[];          // [{id, nombre, imagen, precio, cantidad, pagado, esPrestamo}]
 let clienteVenta=null;   // {id, nombre, esOcasional}
 let hieleraLocal={};     // {idProducto: cantidadActual} copia local
+let congeladorLocal={};  // {idProducto: existencia} para modo congelador
 let modoFiado=true;      // true=fiado, false=pago al momento
-let lineaSeleccionada=null; // índice de línea seleccionada para Quitar 1
+let modoCongelador=false;// false=hielera, true=congelador
+let lineaSeleccionada=null;
 
 // Helper: ordenar clientes por actividad del último mes
 async function clientesOrdenadosPorActividad(){
@@ -1159,8 +1164,9 @@ async function iniciarVentas(){
 }
 
 function resetVentas(){
-  carrito=[];clienteVenta=null;hieleraLocal={};modoFiado=true;lineaSeleccionada=null;
-  const btnModo=document.getElementById('btn-modo-pago');if(btnModo){btnModo.textContent='⚙️ Fiado (sin pago)';btnModo.style.background='var(--gris)';btnModo.style.color='var(--gris-texto)';btnModo.style.borderColor='var(--gris-medio)';}
+  carrito=[];clienteVenta=null;hieleraLocal={};congeladorLocal={};modoFiado=true;modoCongelador=false;lineaSeleccionada=null;
+  const btnModo=document.getElementById('btn-modo-pago');if(btnModo){btnModo.textContent='⚙️ Fiado';btnModo.style.background='var(--gris)';btnModo.style.color='var(--gris-texto)';btnModo.style.borderColor='var(--gris-medio)';}
+  const btnOrigen=document.getElementById('btn-modo-origen');if(btnOrigen){btnOrigen.textContent='🧊 Hielera';btnOrigen.style.background='var(--azul-light)';btnOrigen.style.color='var(--azul-dark)';btnOrigen.style.borderColor='var(--azul)';}
   const sel=document.getElementById('ventas-cliente-select');if(sel)sel.value='';
   const pi=document.getElementById('prestamo-input');if(pi)pi.value='';
 }
@@ -1186,28 +1192,54 @@ function renderVentaGrid(){
     return;
   }
   grid.style.gridTemplateColumns='1fr 1fr 1fr';
-  hieleraCache.forEach(h=>{
-    const stockLocal=hieleraLocal[h.idProducto]||0;
-    if(stockLocal===0)return; // No mostrar si sin stock
-    const enCarrito=carrito.find(c=>c.id===h.idProducto);
-    const cantEnCarrito=enCarrito?enCarrito.cantidad:0;
-    const card=document.createElement('div');card.className='venta-prod-card'+(clienteVenta?'':' bloqueado');
-    const imgHtml=h.imagen?`<div class="venta-prod-img"><img src="${h.imagen}"></div>`:`<div class="venta-prod-img">🧊</div>`;
-    card.innerHTML=`${imgHtml}<div class="venta-prod-nombre">${h.nombre}</div><div class="venta-prod-precio">$${h.precio}</div><div class="venta-prod-stock">${stockLocal} disp.</div>${cantEnCarrito>0?`<div class="venta-prod-badge">${cantEnCarrito}</div>`:''}`;
-    card.onclick=()=>agregarAlCarrito(h.idProducto);
-    grid.appendChild(card);
-  });
+  if(modoCongelador){
+    // Modo congelador: mostrar productos con existencia > 0
+    productosCache.forEach(p=>{
+      const stockLocal=congeladorLocal[p.id]||0;
+      if(stockLocal===0)return;
+      const enCarrito=carrito.find(c=>c.id===p.id);
+      const cantEnCarrito=enCarrito?enCarrito.cantidad:0;
+      const card=document.createElement('div');card.className='venta-prod-card'+(clienteVenta?'':' bloqueado');
+      card.style.borderColor='var(--naranja)';
+      const imgHtml=p.imagen?`<div class="venta-prod-img"><img src="${p.imagen}"></div>`:`<div class="venta-prod-img">🧊</div>`;
+      card.innerHTML=`${imgHtml}<div class="venta-prod-nombre">${p.nombre}</div><div class="venta-prod-precio">$${p.precio}</div><div class="venta-prod-stock">${stockLocal} disp.</div>${cantEnCarrito>0?`<div class="venta-prod-badge">${cantEnCarrito}</div>`:''}`;
+      card.onclick=()=>agregarAlCarrito(p.id);
+      grid.appendChild(card);
+    });
+  }else{
+    hieleraCache.forEach(h=>{
+      const stockLocal=hieleraLocal[h.idProducto]||0;
+      if(stockLocal===0)return;
+      const enCarrito=carrito.find(c=>c.id===h.idProducto);
+      const cantEnCarrito=enCarrito?enCarrito.cantidad:0;
+      const card=document.createElement('div');card.className='venta-prod-card'+(clienteVenta?'':' bloqueado');
+      const imgHtml=h.imagen?`<div class="venta-prod-img"><img src="${h.imagen}"></div>`:`<div class="venta-prod-img">🧊</div>`;
+      card.innerHTML=`${imgHtml}<div class="venta-prod-nombre">${h.nombre}</div><div class="venta-prod-precio">$${h.precio}</div><div class="venta-prod-stock">${stockLocal} disp.</div>${cantEnCarrito>0?`<div class="venta-prod-badge">${cantEnCarrito}</div>`:''}`;
+      card.onclick=()=>agregarAlCarrito(h.idProducto);
+      grid.appendChild(card);
+    });
+  }
 }
 
 function agregarAlCarrito(idProducto){
   if(!clienteVenta){toast('⚠️ Selecciona un cliente primero');return;}
-  const stock=hieleraLocal[idProducto]||0;
-  if(stock<=0){toast('⚠️ Sin stock');return;}
-  const h=hieleraCache.find(x=>x.idProducto===idProducto);if(!h)return;
-  const existente=carrito.find(c=>c.id===idProducto);
-  if(existente){existente.cantidad++;}
-  else{carrito.push({id:idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidad:1,pagado:clienteVenta.esOcasional||!modoFiado,esPrestamo:false});}
-  hieleraLocal[idProducto]--;
+  if(modoCongelador){
+    const stock=congeladorLocal[idProducto]||0;
+    if(stock<=0){toast('⚠️ Sin stock en congelador');return;}
+    const p=productosCache.find(x=>x.id===idProducto);if(!p)return;
+    const existente=carrito.find(c=>c.id===idProducto);
+    if(existente){existente.cantidad++;}
+    else{carrito.push({id:idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidad:1,pagado:clienteVenta.esOcasional||!modoFiado,esPrestamo:false,desdeCongelador:true});}
+    congeladorLocal[idProducto]--;
+  }else{
+    const stock=hieleraLocal[idProducto]||0;
+    if(stock<=0){toast('⚠️ Sin stock');return;}
+    const h=hieleraCache.find(x=>x.idProducto===idProducto);if(!h)return;
+    const existente=carrito.find(c=>c.id===idProducto);
+    if(existente){existente.cantidad++;}
+    else{carrito.push({id:idProducto,nombre:h.nombre,imagen:h.imagen||null,precio:h.precio,cantidad:1,pagado:clienteVenta.esOcasional||!modoFiado,esPrestamo:false});}
+    hieleraLocal[idProducto]--;
+  }
   renderVentaGrid();renderCarrito();
 }
 
@@ -1231,7 +1263,10 @@ window.todoPagado=function(){
 
 window.eliminarLineaCarrito=function(idx){
   const item=carrito[idx];
-  if(item&&!item.esPrestamo){hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+item.cantidad;}
+  if(item&&!item.esPrestamo){
+    if(item.desdeCongelador)congeladorLocal[item.id]=(congeladorLocal[item.id]||0)+item.cantidad;
+    else hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+item.cantidad;
+  }
   if(lineaSeleccionada===idx)lineaSeleccionada=null;
   else if(lineaSeleccionada>idx)lineaSeleccionada--;
   carrito.splice(idx,1);renderVentaGrid();renderCarrito();
@@ -1242,14 +1277,37 @@ window.quitarUno=function(){
   const item=carrito[lineaSeleccionada];if(!item)return;
   if(!item.esPrestamo){
     if(item.cantidad>1){item.cantidad--;}
-    else{hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;carrito.splice(lineaSeleccionada,1);lineaSeleccionada=null;renderVentaGrid();renderCarrito();return;}
-    hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;
+    else{
+      if(item.desdeCongelador)congeladorLocal[item.id]=(congeladorLocal[item.id]||0)+1;
+      else hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;
+      carrito.splice(lineaSeleccionada,1);lineaSeleccionada=null;renderVentaGrid();renderCarrito();return;
+    }
+    if(item.desdeCongelador)congeladorLocal[item.id]=(congeladorLocal[item.id]||0)+1;
+    else hieleraLocal[item.id]=(hieleraLocal[item.id]||0)+1;
   }else{
     if(item.cantidad>1)item.cantidad--;
     else{carrito.splice(lineaSeleccionada,1);lineaSeleccionada=null;renderVentaGrid();renderCarrito();return;}
   }
   lineaSeleccionada=null;
   renderVentaGrid();renderCarrito();
+};
+
+window.toggleModoOrigen=function(){
+  if(carrito.length>0){toast('⚠️ Vacía el carrito antes de cambiar el origen');return;}
+  modoCongelador=!modoCongelador;
+  const btn=document.getElementById('btn-modo-origen');
+  if(modoCongelador){
+    btn.textContent='🏠 Congelador';btn.style.background='var(--naranja-light)';btn.style.color='#92400e';btn.style.borderColor='var(--naranja)';
+    // Congelador: pago al momento por default
+    if(modoFiado){toggleModoPago();}
+    // Inicializar stock local del congelador
+    congeladorLocal={};
+    productosCache.forEach(p=>{if((p.existencia||0)>0)congeladorLocal[p.id]=p.existencia;});
+  }else{
+    btn.textContent='🧊 Hielera';btn.style.background='var(--azul-light)';btn.style.color='var(--azul-dark)';btn.style.borderColor='var(--azul)';
+    congeladorLocal={};
+  }
+  renderVentaGrid();
 };
 
 window.toggleModoPago=function(){
@@ -1339,14 +1397,26 @@ window.cerrarVenta=async function(){
         fecha:ahora
       });
 
-      // Actualizar stock en hielera (solo productos reales)
+      // Actualizar stock según origen
       if(!item.esPrestamo){
-        const hielRef=doc(db,'hielera',item.id);
-        const hielItem=hieleraCache.find(h=>h.idProducto===item.id);
-        if(hielItem){
-          const nuevaActual=hielItem.cantidadActual-item.cantidad;
-          batch.update(hielRef,{cantidadActual:Math.max(0,nuevaActual)});
-          hielItem.cantidadActual=Math.max(0,nuevaActual);
+        if(item.desdeCongelador){
+          // Descontar del inventario general
+          const prod=productosCache.find(p=>p.id===item.id);
+          if(prod&&prod.existencia!==undefined&&prod.existencia!==null){
+            const nuevaExist=Math.max(0,(prod.existencia||0)-item.cantidad);
+            batch.update(doc(db,'productos',item.id),{existencia:nuevaExist});
+            const pIdx=productosCache.findIndex(p=>p.id===item.id);
+            if(pIdx>=0)productosCache[pIdx].existencia=nuevaExist;
+          }
+        }else{
+          // Descontar de la hielera
+          const hielRef=doc(db,'hielera',item.id);
+          const hielItem=hieleraCache.find(h=>h.idProducto===item.id);
+          if(hielItem){
+            const nuevaActual=hielItem.cantidadActual-item.cantidad;
+            batch.update(hielRef,{cantidadActual:Math.max(0,nuevaActual)});
+            hielItem.cantidadActual=Math.max(0,nuevaActual);
+          }
         }
       }
     });
