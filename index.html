@@ -1311,8 +1311,15 @@ window.toggleModoOrigen=async function(){
   }else{
     btn.textContent='🧊 Hielera';btn.style.background='var(--azul-light)';btn.style.color='var(--azul-dark)';btn.style.borderColor='var(--azul)';
     congeladorLocal={};
-    // Regresar a Fiado por default
-    if(!modoFiado){toggleModoPago();}
+    // Forzar Fiado sin importar el estado actual
+    modoFiado=true;
+    const btnPago=document.getElementById('btn-modo-pago');
+    if(btnPago){
+      btnPago.textContent='⚙️ Fiado';
+      btnPago.style.background='var(--gris)';
+      btnPago.style.color='var(--gris-texto)';
+      btnPago.style.borderColor='var(--gris-medio)';
+    }
   }
   renderVentaGrid();
 };
