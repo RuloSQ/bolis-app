@@ -1311,6 +1311,8 @@ window.toggleModoOrigen=async function(){
   }else{
     btn.textContent='🧊 Hielera';btn.style.background='var(--azul-light)';btn.style.color='var(--azul-dark)';btn.style.borderColor='var(--azul)';
     congeladorLocal={};
+    // Regresar a Fiado por default
+    if(!modoFiado){toggleModoPago();}
   }
   renderVentaGrid();
 };
