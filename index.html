@@ -1013,6 +1013,35 @@ let hieleraLocal={};     // {idProducto: cantidadActual} copia local
 let modoFiado=true;      // true=fiado, false=pago al momento
 let lineaSeleccionada=null; // índice de línea seleccionada para Quitar 1
 
+// Helper: ordenar clientes por actividad del último mes
+async function clientesOrdenadosPorActividad(){
+  // Asegurar caché de clientes
+  if(clientesCache.length===0){
+    try{
+      await asegurarClienteOcasional();
+      const snap=await getDocs(collection(db,'clientes'));
+      clientesCache=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);
+    }catch(e){}
+  }
+  // Contar registros por cliente en el último mes
+  const conteo={};// {idCliente: count}
+  try{
+    const hace30=new Date();hace30.setDate(hace30.getDate()-30);
+    const q=query(collection(db,'historial'),orderBy('fecha','asc'),where('fecha','>=',hace30.toISOString()));
+    const snap=await getDocs(q);
+    snap.docs.forEach(d=>{
+      const id=d.data().idCliente;
+      if(id&&id!=='ocasional')conteo[id]=(conteo[id]||0)+1;
+    });
+  }catch(e){console.warn('No se pudo obtener actividad:',e);}
+  // Ordenar: primero los más activos, luego alfabético
+  return [...clientesCache].sort((a,b)=>{
+    const ca=conteo[a.id]||0, cb=conteo[b.id]||0;
+    if(cb!==ca)return cb-ca;
+    return a.nombre.localeCompare(b.nombre);
+  });
+}
+
 async function iniciarVentas(){
   resetVentas();
   // Cargar clientes si no están en caché
@@ -1030,10 +1059,10 @@ async function iniciarVentas(){
   // Inicializar copia local de hielera
   hieleraLocal={};
   hieleraCache.forEach(h=>{hieleraLocal[h.idProducto]=h.cantidadActual;});
-  // Poblar select de clientes
+  // Poblar select de clientes ordenados por actividad del último mes
   const sel=document.getElementById('ventas-cliente-select');
   sel.innerHTML='<option value="">Selecciona un cliente...</option><option value="ocasional">👤 Cliente Ocasional</option>';
-  const ordenados=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const ordenados=await clientesOrdenadosPorActividad();
   ordenados.forEach(c=>{
     const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.nombre;sel.appendChild(opt);
   });
@@ -1573,12 +1602,12 @@ async function iniciarConsultas(){
     }catch(e){}
   }
 
-  // Poblar clientes
+  // Poblar clientes ordenados por actividad del último mes
   const selC=document.getElementById('cons-cliente');
   if(selC){
     selC.innerHTML='';
-    const ordenados=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
-    ordenados.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;selC.appendChild(o);});
+    const ordenadosC=await clientesOrdenadosPorActividad();
+    ordenadosC.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;selC.appendChild(o);});
   }
   // Poblar sabores
   const selS=document.getElementById('cons-sabor');
