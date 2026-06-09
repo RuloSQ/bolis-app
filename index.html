@@ -962,7 +962,7 @@ window.agregarStock=async function(idProducto, sinCargar=false){
     const heroNum=document.querySelector('.hielera-hero-num');if(heroNum)heroNum.textContent=total;
     const panel=document.getElementById('panel-'+idProducto);if(panel)panel.style.display='none';itemExpandido=null;input.value='0';
     toast(`✅ +${cant} ${nombre}`);
-  }catch(err){console.error(err);toast('⚠️ Error al agregar stock');}
+  }catch(err){console.error('agregarStock error:',err);toast(`⚠️ Error: ${err.message||err.code||JSON.stringify(err)}`,4000);}
   finally{setSync(navigator.onLine?'online':'offline');}
 };
 async function mostrarReporte(){
