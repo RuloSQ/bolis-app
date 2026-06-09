@@ -910,7 +910,7 @@ function togglePanel(idProducto){
   if(!abierto){const input=document.getElementById('add-input-'+idProducto);if(input){input.value='';setTimeout(()=>input.focus(),100);}}
 }
 window.agregarStock=async function(idProducto, sinCargar=false){
-  const input=document.getElementById('add-input-'+idProducto);const cant=parseInt(input.value)||0;
+  const input=document.getElementById('add-input-'+idProducto);let cant=parseInt(input.value)||0;
   if(cant<=0){toast('⚠️ Ingresa una cantidad mayor a 0');return;}
   setSync('syncing');
   try{
