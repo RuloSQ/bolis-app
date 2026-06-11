@@ -938,15 +938,19 @@ window.agregarStock=async function(idProducto, sinCargar=false){
       const data=snap.data();
       nombre=data.nombre;
       // Validar inventario
-      const prod=productosCache.find(x=>x.id===idProducto);
-      if(prod&&prod.existencia!==undefined&&prod.existencia!==null){
-        if(prod.existencia===0){toast(`⚠️ ${nombre} sin existencia en inventario`);return;}
-        const cantFinal=Math.min(cant,prod.existencia);
-        if(cantFinal<cant)toast(`⚠️ Solo había ${prod.existencia} de ${nombre}, se cargaron ${cantFinal}`,3000);
-        cant=cantFinal;
-        await updateDoc(doc(db,'productos',idProducto),{existencia:prod.existencia-cant});
-        const pIdx=productosCache.findIndex(x=>x.id===idProducto);
-        if(pIdx>=0)productosCache[pIdx].existencia=prod.existencia-cant;
+      // Leer existencia directo de Firebase (no del caché que puede estar desactualizado)
+      const prodSnap=await getDoc(doc(db,'productos',idProducto));
+      if(prodSnap.exists()){
+        const existenciaActual=prodSnap.data().existencia;
+        if(existenciaActual!==undefined&&existenciaActual!==null){
+          if(existenciaActual===0){toast(`⚠️ ${nombre} sin existencia en inventario`);return;}
+          const cantFinal=Math.min(cant,existenciaActual);
+          if(cantFinal<cant)toast(`⚠️ Solo había ${existenciaActual} de ${nombre}, se cargaron ${cantFinal}`,3000);
+          cant=cantFinal;
+          await updateDoc(doc(db,'productos',idProducto),{existencia:existenciaActual-cant});
+          const pIdx=productosCache.findIndex(x=>x.id===idProducto);
+          if(pIdx>=0)productosCache[pIdx].existencia=existenciaActual-cant;
+        }
       }
       const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
       await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
@@ -1152,13 +1156,19 @@ async function iniciarVentas(){
   // Inicializar copia local de hielera
   hieleraLocal={};
   hieleraCache.forEach(h=>{hieleraLocal[h.idProducto]=h.cantidadActual;});
-  // Poblar select de clientes ordenados por actividad del último mes
+  // Poblar select de clientes — inmediato en orden alfabético
   const sel=document.getElementById('ventas-cliente-select');
-  sel.innerHTML='<option value="">Selecciona un cliente...</option><option value="ocasional">👤 Cliente Ocasional</option>';
-  const ordenados=await clientesOrdenadosPorActividad();
-  ordenados.forEach(c=>{
-    const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.nombre;sel.appendChild(opt);
-  });
+  const poblarSelect=(lista)=>{
+    const valorActual=sel.value;
+    sel.innerHTML='<option value="">Selecciona un cliente...</option><option value="ocasional">👤 Cliente Ocasional</option>';
+    lista.forEach(c=>{const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.nombre;sel.appendChild(opt);});
+    if(valorActual)sel.value=valorActual;
+  };
+  // Mostrar inmediatamente en orden alfabético
+  const alfabetico=[...clientesCache].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  poblarSelect(alfabetico);
+  // Actualizar orden por actividad en segundo plano sin bloquear la UI
+  clientesOrdenadosPorActividad().then(ordenados=>poblarSelect(ordenados)).catch(()=>{});
   // Renderizar grid de productos
   renderVentaGrid();
   renderCarrito();
