@@ -915,7 +915,7 @@ window.agregarStock=async function(idProducto, sinCargar=false){
   setSync('syncing');
   try{
     const ref=doc(db,'hielera',idProducto);
-    let nombre='';
+    let nombre='',cantNuevoTotal=cant;
     if(sinCargar){
       // Crear documento nuevo en hielera para este producto
       const p=productosCache.find(x=>x.id===idProducto);
@@ -956,9 +956,10 @@ window.agregarStock=async function(idProducto, sinCargar=false){
       await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
       const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
       if(idx>=0){hieleraCache[idx].cantidadInicial=ni;hieleraCache[idx].cantidadActual=na;}
+      cantNuevoTotal=na;
     }
     const cantEl=document.getElementById('cant-'+idProducto);
-    if(cantEl){cantEl.textContent=cant;cantEl.className='stock-item-cant';}
+    if(cantEl){cantEl.textContent=cantNuevoTotal;cantEl.className='stock-item-cant';}
     // Quitar difuminado del item
     const itemWrap=document.getElementById('stock-item-'+idProducto);
     if(itemWrap)itemWrap.style.opacity='1';
