@@ -613,6 +613,134 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:17px;background:var(-
 </div>
 <div class="toast" id="toast"></div>
 
+
+<script>
+// ══════════════════════════════════════════════════════
+//  LOCAL DB — IndexedDB wrapper (opera sin internet)
+// ══════════════════════════════════════════════════════
+const LocalDB = {
+  db: null,
+  VERSION: 2,
+
+  async open() {
+    if (this.db) return this.db;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('BolisLocal', this.VERSION);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        const stores = ['productos','clientes','hielera','historial','abonos','config','syncQueue'];
+        stores.forEach(s => {
+          if (!db.objectStoreNames.contains(s)) {
+            if (s === 'syncQueue') {
+              db.createObjectStore(s, { keyPath: 'id', autoIncrement: true });
+            } else {
+              const st = db.createObjectStore(s, { keyPath: 'id' });
+              if (s === 'historial') {
+                st.createIndex('fecha', 'fecha');
+                st.createIndex('idCliente', 'idCliente');
+              }
+              if (s === 'abonos') st.createIndex('idCliente', 'idCliente');
+            }
+          }
+        });
+      };
+      req.onsuccess = e => { this.db = e.target.result; resolve(this.db); };
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async getAll(store) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async get(store, id) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(store, 'readonly').objectStore(store).get(id);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async put(store, obj) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(store, 'readwrite').objectStore(store).put(obj);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async putMany(store, items) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite');
+      const st = tx.objectStore(store);
+      items.forEach(item => st.put(item));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+
+  async delete(store, id) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(store, 'readwrite').objectStore(store).delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async clear(store) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(store, 'readwrite').objectStore(store).clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async getByIndex(store, indexName, value) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(store, 'readonly');
+      const idx = tx.objectStore(store).index(indexName);
+      const req = idx.getAll(value);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  // Sync queue: operations pending upload to Firebase
+  async queueOp(op) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction('syncQueue', 'readwrite')
+        .objectStore('syncQueue').add({...op, timestamp: Date.now()});
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async getQueue() {
+    return this.getAll('syncQueue');
+  },
+
+  async removeFromQueue(id) {
+    return this.delete('syncQueue', id);
+  }
+};
+
+// Make globally available
+window.LocalDB = LocalDB;
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -737,7 +865,18 @@ window.editarProducto=async function(id){const prod=productosCache.find(p=>p.id=
 async function cargarProductos(){
   const lista=document.getElementById('lista-productos');
   lista.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
-  try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(err){productosCache=[];}
+  try{
+    const q=query(collection(db,'productos'),orderBy('nombre'));
+    const snap=await getDocs(q);
+    productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Guardar en local para uso offline
+    await LocalDB.putMany('productos',productosCache);
+  }catch(err){
+    // Sin internet: cargar desde IndexedDB
+    const local=await LocalDB.getAll('productos');
+    if(local.length>0){productosCache=local.sort((a,b)=>a.nombre.localeCompare(b.nombre));}
+    else{productosCache=[];}
+  }
   if(productosCache.length===0){lista.innerHTML=`<div class="empty"><div class="empty-icon">🏷️</div><p>No hay productos.<br>Toca <strong>＋</strong> para agregar.</p></div>`;return;}
   // Contar actividad del último mes por producto
   const conteo={};
@@ -787,7 +926,14 @@ async function cargarHielera(){
   const contenido=document.getElementById('contenido-hielera');
   contenido.innerHTML='<div class="spinner"><div class="spin"></div> Cargando…</div>';
   if(productosCache.length===0){try{const q=query(collection(db,'productos'),orderBy('nombre'));const snap=await getDocs(q);productosCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){}}
-  try{const snap=await getDocs(collection(db,'hielera'));hieleraCache=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(e){hieleraCache=[];}
+  try{
+    const snap=await getDocs(collection(db,'hielera'));
+    hieleraCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    await LocalDB.putMany('hielera',hieleraCache);
+  }catch(e){
+    const local=await LocalDB.getAll('hielera');
+    hieleraCache=local.length>0?local:[];
+  }
   const tieneStock=hieleraCache.some(h=>h.cantidadActual>0);
   const total=hieleraCache.reduce((s,h)=>s+h.cantidadActual,0);
   contenido.innerHTML='';
@@ -1023,7 +1169,13 @@ async function cargarClientes(){
     await asegurarClienteOcasional();
     const snap=await getDocs(collection(db,'clientes'));
     clientesCache=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>!c.esOcasional);
-  }catch(e){clientesCache=[];}
+    // Guardar en local
+    await LocalDB.putMany('clientes',snap.docs.map(d=>({id:d.id,...d.data()})));
+  }catch(e){
+    // Sin internet: cargar desde IndexedDB
+    const local=await LocalDB.getAll('clientes');
+    clientesCache=local.filter(c=>!c.esOcasional);
+  }
   if(clientesCache.length===0){lista.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><p>No hay clientes.<br>Toca <strong>Agregar</strong>.</p></div>`;return;}
   const ordenados=[...clientesCache].sort((a,b)=>{
     const sa=a.saldo||0,sb=b.saldo||0;
@@ -1394,75 +1546,66 @@ window.cerrarVenta=async function(){
   try{
     const ahora=new Date().toISOString();
     const ventaId='v_'+Date.now();
-    const batch=writeBatch(db);
-
     let totalConsumo=0,totalDeuda=0,totalPagadoEnVenta=0;
+    const batchOps=[];
 
-    // Guardar cada línea al historial y actualizar hielera
+    // ── Calcular totales y preparar operaciones ──
     carrito.forEach(item=>{
       const monto=item.precio*item.cantidad;
       totalConsumo+=monto;
       if(!item.pagado)totalDeuda+=monto;
       else totalPagadoEnVenta+=monto;
-
-      // Historial
-      const hRef=doc(collection(db,'historial'));
-      batch.set(hRef,{
-        idVenta:ventaId,
-        idCliente:clienteVenta.id,
-        nombreCliente:clienteVenta.nombre,
-        idProducto:item.esPrestamo?'prestamo':item.id,
-        nombreProducto:item.nombre,
-        imagen:item.imagen||null,
-        cantidad:item.cantidad,
-        precioUnitario:item.precio,
-        monto,
-        pagado:item.pagado,
-        esPrestamo:item.esPrestamo,
-        fecha:ahora
-      });
-
-      // Actualizar stock según origen
-      if(!item.esPrestamo){
-        if(item.desdeCongelador){
-          // Descontar del inventario general
-          const prod=productosCache.find(p=>p.id===item.id);
-          if(prod&&prod.existencia!==undefined&&prod.existencia!==null){
-            const nuevaExist=Math.max(0,(prod.existencia||0)-item.cantidad);
-            batch.update(doc(db,'productos',item.id),{existencia:nuevaExist});
-            const pIdx=productosCache.findIndex(p=>p.id===item.id);
-            if(pIdx>=0)productosCache[pIdx].existencia=nuevaExist;
-          }
-        }else{
-          // Descontar de la hielera
-          const hielRef=doc(db,'hielera',item.id);
-          const hielItem=hieleraCache.find(h=>h.idProducto===item.id);
-          if(hielItem){
-            const nuevaActual=hielItem.cantidadActual-item.cantidad;
-            batch.update(hielRef,{cantidadActual:Math.max(0,nuevaActual)});
-            hielItem.cantidadActual=Math.max(0,nuevaActual);
-          }
-        }
-      }
     });
 
-    // Actualizar cliente (excepto ocasional — no lleva deuda)
+    // ── Guardar historial LOCAL primero ──
+    for(const item of carrito){
+      const monto=item.precio*item.cantidad;
+      const hId='h_'+Date.now()+'_'+Math.random().toString(36).substr(2,6);
+      const hData={idVenta:ventaId,idCliente:clienteVenta.id,nombreCliente:clienteVenta.nombre,
+        idProducto:item.esPrestamo?'prestamo':item.id,nombreProducto:item.nombre,
+        imagen:item.imagen||null,cantidad:item.cantidad,precioUnitario:item.precio,
+        monto,pagado:item.pagado,esPrestamo:item.esPrestamo,fecha:ahora,
+        desdeCongelador:item.desdeCongelador||false};
+      await LocalDB.put('historial',{id:hId,...hData});
+      batchOps.push({type:'set',collection:'historial',id:hId,data:hData});
+    }
+
+    // ── Actualizar cliente LOCAL ──
     if(!clienteVenta.esOcasional){
-      const clienteRef=doc(db,'clientes',clienteVenta.id);
-      const cSnap=await getDoc(clienteRef);
-      if(cSnap.exists()){
-        const cData=cSnap.data();
-        const nuevoConsumo=(cData.consumoTotal||0)+totalConsumo;
-        const nuevoSaldo=(cData.saldo||0)+totalDeuda;
-        const nuevoAbonado=(cData.totalAbonado||0)+totalPagadoEnVenta;
-        batch.update(clienteRef,{consumoTotal:nuevoConsumo,saldo:nuevoSaldo,totalAbonado:nuevoAbonado});
-        // Actualizar caché local
-        const idx=clientesCache.findIndex(c=>c.id===clienteVenta.id);
-        if(idx>=0){clientesCache[idx].consumoTotal=nuevoConsumo;clientesCache[idx].saldo=nuevoSaldo;clientesCache[idx].totalAbonado=nuevoAbonado;}
+      const cLocal=await LocalDB.get('clientes',clienteVenta.id)||{};
+      const nuevoConsumo=(cLocal.consumoTotal||0)+totalConsumo;
+      const nuevoSaldo=(cLocal.saldo||0)+totalDeuda;
+      const nuevoAbonado=(cLocal.totalAbonado||0)+totalPagadoEnVenta;
+      const cUpd={consumoTotal:nuevoConsumo,saldo:nuevoSaldo,totalAbonado:nuevoAbonado};
+      await LocalDB.put('clientes',{...cLocal,id:clienteVenta.id,...cUpd});
+      batchOps.push({type:'update',collection:'clientes',id:clienteVenta.id,data:cUpd});
+      const idx=clientesCache.findIndex(c=>c.id===clienteVenta.id);
+      if(idx>=0){clientesCache[idx].consumoTotal=nuevoConsumo;clientesCache[idx].saldo=nuevoSaldo;clientesCache[idx].totalAbonado=nuevoAbonado;}
+    }
+
+    // ── Actualizar hielera/inventario LOCAL ──
+    for(const item of carrito){
+      if(item.esPrestamo)continue;
+      if(item.desdeCongelador){
+        const prod=await LocalDB.get('productos',item.id)||{};
+        const nE=Math.max(0,(prod.existencia||0)-item.cantidad);
+        await LocalDB.put('productos',{...prod,id:item.id,existencia:nE});
+        batchOps.push({type:'update',collection:'productos',id:item.id,data:{existencia:nE}});
+        const pIdx=productosCache.findIndex(p=>p.id===item.id);
+        if(pIdx>=0)productosCache[pIdx].existencia=nE;
+      }else{
+        const hiel=await LocalDB.get('hielera',item.id)||{};
+        const nA=Math.max(0,(hiel.cantidadActual||0)-item.cantidad);
+        await LocalDB.put('hielera',{...hiel,id:item.id,cantidadActual:nA});
+        batchOps.push({type:'update',collection:'hielera',id:item.id,data:{cantidadActual:nA}});
+        const hIdx=hieleraCache.findIndex(h=>h.idProducto===item.id);
+        if(hIdx>=0)hieleraCache[hIdx].cantidadActual=nA;
       }
     }
 
-    await batch.commit();
+    // ── Encolar todo para Firebase ──
+    await LocalDB.queueOp({type:'batch',ops:batchOps});
+    if(navigator.onLine)procesarColaSync();
 
     const numLineas=carrito.length;
     const totalStr=`$${carrito.reduce((s,i)=>s+i.precio*i.cantidad,0).toFixed(2)}`;
@@ -2285,7 +2428,167 @@ window.exportarCSV=async function(){
   }
 };
 
-console.log('✅ Bolis App — Módulo 4 (Ventas) listo');
+
+// ══════════════════════════════════════════════════════
+//  SYNC ENGINE — sincroniza IndexedDB ↔ Firebase
+// ══════════════════════════════════════════════════════
+let syncInProgress = false;
+let lastSyncTime = 0;
+
+async function sincronizarDesdeFirebase() {
+  if (!navigator.onLine || syncInProgress) return;
+  const ahora = Date.now();
+  if (ahora - lastSyncTime < 30000) return; // No más de 1 vez cada 30s
+  syncInProgress = true;
+  setSync('syncing');
+  try {
+    // Descargar todas las colecciones a IndexedDB
+    const colecciones = ['productos', 'clientes', 'hielera', 'abonos'];
+    for (const col of colecciones) {
+      const snap = await getDocs(collection(db, col));
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      await LocalDB.clear(col);
+      if (items.length > 0) await LocalDB.putMany(col, items);
+    }
+    // Historial: solo los últimos 200 para no saturar
+    const qH = query(collection(db,'historial'), orderBy('fecha','asc'), limitToLast(200));
+    const snapH = await getDocs(qH);
+    const histItems = snapH.docs.map(d => ({ id: d.id, ...d.data() }));
+    await LocalDB.clear('historial');
+    if (histItems.length > 0) await LocalDB.putMany('historial', histItems);
+    // Config/reporte
+    try {
+      const repSnap = await getDoc(doc(db,'config','ultimo_reporte'));
+      if (repSnap.exists()) await LocalDB.put('config', { id: 'ultimo_reporte', ...repSnap.data() });
+    } catch(e) {}
+
+    lastSyncTime = ahora;
+    console.log('✅ Sync desde Firebase completado');
+  } catch(e) {
+    console.warn('Sync Firebase→Local falló:', e);
+  } finally {
+    syncInProgress = false;
+    setSync(navigator.onLine ? 'online' : 'offline');
+  }
+}
+
+async function procesarColaSync() {
+  if (!navigator.onLine) return;
+  const cola = await LocalDB.getQueue();
+  if (cola.length === 0) return;
+  console.log(`📤 Procesando ${cola.length} operaciones pendientes...`);
+  for (const op of cola) {
+    try {
+      if (op.type === 'set') {
+        await setDoc(doc(db, op.collection, op.id), op.data);
+      } else if (op.type === 'update') {
+        await updateDoc(doc(db, op.collection, op.id), op.data);
+      } else if (op.type === 'add') {
+        await setDoc(doc(db, op.collection, op.id), op.data);
+      } else if (op.type === 'delete') {
+        await deleteDoc(doc(db, op.collection, op.id));
+      } else if (op.type === 'batch') {
+        const batch = writeBatch(db);
+        for (const bop of op.ops) {
+          if (bop.type === 'set') batch.set(doc(db, bop.collection, bop.id), bop.data);
+          else if (bop.type === 'update') batch.update(doc(db, bop.collection, bop.id), bop.data);
+          else if (bop.type === 'delete') batch.delete(doc(db, bop.collection, bop.id));
+        }
+        await batch.commit();
+      }
+      await LocalDB.removeFromQueue(op.id);
+    } catch(e) {
+      console.warn('Op de sync falló:', e, op);
+      break; // Parar en el primer error para no perder orden
+    }
+  }
+  const restantes = await LocalDB.getQueue();
+  if (restantes.length > 0) {
+    document.getElementById('syncDot') && actualizarBadgeSync(restantes.length);
+  }
+}
+
+function actualizarBadgeSync(pendientes) {
+  SYNC_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (pendientes > 0) {
+      el.title = `${pendientes} operación(es) pendiente(s) de subir`;
+      el.className = 'sync-dot syncing';
+    }
+  });
+}
+
+// Iniciar sync al cargar y cuando vuelve internet
+async function iniciarSync() {
+  // Primero procesar cola pendiente
+  await procesarColaSync();
+  // Luego descargar datos frescos de Firebase
+  await sincronizarDesdeFirebase();
+}
+
+window.addEventListener('online', async () => {
+  setSync('online');
+  await iniciarSync();
+});
+
+// ── HELPER: escribir en local Y encolar para Firebase ──
+async function localWrite(collection_name, id, data, firebaseType = 'set') {
+  // 1. Escribir en IndexedDB inmediatamente
+  await LocalDB.put(collection_name, { id, ...data });
+  // 2. Encolar para Firebase
+  await LocalDB.queueOp({ type: firebaseType, collection: collection_name, id, data });
+  // 3. Intentar subir ahora si hay internet
+  if (navigator.onLine) procesarColaSync();
+}
+
+async function localDelete(collection_name, id) {
+  await LocalDB.delete(collection_name, id);
+  await LocalDB.queueOp({ type: 'delete', collection: collection_name, id });
+  if (navigator.onLine) procesarColaSync();
+}
+
+async function localBatch(ops) {
+  // ops: [{type, collection, id, data}]
+  for (const op of ops) {
+    if (op.type === 'set' || op.type === 'update') {
+      const existing = await LocalDB.get(op.collection, op.id) || {};
+      await LocalDB.put(op.collection, { ...existing, ...op.data, id: op.id });
+    } else if (op.type === 'delete') {
+      await LocalDB.delete(op.collection, op.id);
+    }
+  }
+  await LocalDB.queueOp({ type: 'batch', ops });
+  if (navigator.onLine) procesarColaSync();
+}
+
+
+// ── INICIO: cargar local primero, sync Firebase en segundo plano ──
+async function iniciarApp(){
+  try{
+    await LocalDB.open();
+    // Pre-cargar cachés desde IndexedDB (instantáneo)
+    const [prods,clis,hiel]=await Promise.all([
+      LocalDB.getAll('productos'),
+      LocalDB.getAll('clientes'),
+      LocalDB.getAll('hielera')
+    ]);
+    if(prods.length>0)productosCache=prods;
+    if(clis.length>0)clientesCache=clis.filter(c=>!c.esOcasional);
+    if(hiel.length>0)hieleraCache=hiel;
+    console.log(`📦 IndexedDB: ${prods.length} productos, ${clis.length} clientes`);
+  }catch(e){
+    console.warn('IndexedDB no disponible:',e);
+  }
+  // Sincronizar con Firebase en segundo plano sin bloquear la UI
+  if(navigator.onLine){
+    setTimeout(()=>iniciarSync(),1500);
+  }
+}
+
+iniciarApp();
+
+console.log('✅ Bolis App — Módulo 5 (Offline) listo');
 </script>
 <script>
 if('serviceWorker' in navigator){
