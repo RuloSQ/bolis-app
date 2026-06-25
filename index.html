@@ -2548,12 +2548,16 @@ async function sincronizarDesdeFirebase() {
       await LocalDB.clear(col);
       if (items.length > 0) await LocalDB.putMany(col, items);
     }
-    // Historial: solo los últimos 200 para no saturar
-    const qH = query(collection(db,'historial'), orderBy('fecha','asc'), limitToLast(200));
-    const snapH = await getDocs(qH);
-    const histItems = snapH.docs.map(d => ({ id: d.id, ...d.data() }));
-    await LocalDB.clear('historial');
-    if (histItems.length > 0) await LocalDB.putMany('historial', histItems);
+    // Historial completo — en lotes para no saturar memoria
+    const localHistCount=(await LocalDB.getAll('historial')).length;
+    if(localHistCount===0){
+      // Primera sync: traer todo
+      const snapH=await getDocs(query(collection(db,'historial'),orderBy('fecha','asc')));
+      const histItems=snapH.docs.map(d=>({id:d.id,...d.data()}));
+      await LocalDB.clear('historial');
+      if(histItems.length>0)await LocalDB.putMany('historial',histItems);
+      console.log(`📥 Historial sincronizado: ${histItems.length} registros`);
+    }
     // Config/reporte
     try {
       const repSnap = await getDoc(doc(db,'config','ultimo_reporte'));
