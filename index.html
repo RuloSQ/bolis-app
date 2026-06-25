@@ -742,12 +742,10 @@ window.LocalDB = LocalDB;
 </script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, enableIndexedDbPersistence,
-  collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc,
-  query, orderBy, writeBatch, where, serverTimestamp, limit, startAfter, limitToLast, endBefore
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Firebase variables — se cargan dinámicamente, app funciona sin ellos
+let db = null;
+let collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc;
+let query, orderBy, writeBatch, where, serverTimestamp, limit, startAfter, limitToLast, endBefore;
 
 const firebaseConfig = {
   apiKey: "AIzaSyB5_wTJgFTwKOf_4YRuEXMPvmaYrEjEuVE",
@@ -757,9 +755,31 @@ const firebaseConfig = {
   messagingSenderId: "905065866276",
   appId: "1:905065866276:web:1cd6306f7895492ea5a4b1"
 };
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-enableIndexedDbPersistence(db).catch(()=>{});
+
+async function initFirebase() {
+  try {
+    const [appMod, fsMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+    ]);
+    const app = appMod.initializeApp(firebaseConfig);
+    db = fsMod.getFirestore(app);
+    // Asignar todas las funciones
+    ({collection,addDoc,getDocs,doc,setDoc,updateDoc,deleteDoc,getDoc,
+      query,orderBy,writeBatch,where,serverTimestamp,limit,
+      startAfter,limitToLast,endBefore} = fsMod);
+    await fsMod.enableIndexedDbPersistence(db).catch(()=>{});
+    setSync('online');
+    console.log('✅ Firebase conectado');
+    // Sincronizar datos en segundo plano
+    setTimeout(()=>iniciarSync(), 1000);
+  } catch(e) {
+    console.warn('Firebase no disponible (modo offline):', e.message);
+    setSync('offline');
+  }
+}
+
+// Firebase config movida a initFirebase()
 
 // ── SYNC ──
 const SYNC_IDS=['syncDot','syncDotV','syncDot2','syncDot3','syncDot4','syncDot5','syncDot6'];
@@ -1097,14 +1117,14 @@ window.agregarStock=async function(idProducto, sinCargar=false){
       await setDoc(ref,{idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
       hieleraCache.push({idProducto,nombre:p.nombre,imagen:p.imagen||null,precio:p.precio,cantidadInicial:cant,cantidadActual:cant});
     }else{
-      const snap=await getDoc(ref);if(!snap.exists()){toast('⚠️ No encontrado');return;}
-      const data=snap.data();
+      const data=await LocalDB.get('hielera',idProducto);
+      if(!data){toast('⚠️ No encontrado');return;}
       nombre=data.nombre;
       // Validar inventario
-      // Leer existencia directo de Firebase (no del caché que puede estar desactualizado)
-      const prodSnap=await getDoc(doc(db,'productos',idProducto));
-      if(prodSnap.exists()){
-        const existenciaActual=prodSnap.data().existencia;
+      // Leer existencia desde IndexedDB (siempre actualizado)
+      const prodLocal=await LocalDB.get('productos',idProducto);
+      if(prodLocal){
+        const existenciaActual=prodLocal.existencia;
         if(existenciaActual!==undefined&&existenciaActual!==null){
           if(existenciaActual===0){toast(`⚠️ ${nombre} sin existencia en inventario`);return;}
           const cantFinal=Math.min(cant,existenciaActual);
@@ -1116,7 +1136,9 @@ window.agregarStock=async function(idProducto, sinCargar=false){
         }
       }
       const ni=data.cantidadInicial+cant,na=data.cantidadActual+cant;
-      await updateDoc(ref,{cantidadInicial:ni,cantidadActual:na});
+      await LocalDB.put('hielera',{...data,cantidadInicial:ni,cantidadActual:na});
+      await LocalDB.queueOp({type:'update',collection:'hielera',id:idProducto,data:{cantidadInicial:ni,cantidadActual:na}});
+      if(navigator.onLine)procesarColaSync();
       const idx=hieleraCache.findIndex(h=>h.idProducto===idProducto);
       if(idx>=0){hieleraCache[idx].cantidadInicial=ni;hieleraCache[idx].cantidadActual=na;}
       cantNuevoTotal=na;
@@ -1186,6 +1208,12 @@ window.confirmarVaciar=async function(){
 // ══════════════════════════════════════
 let clienteActualId=null,clienteEliminandoId=null;
 async function asegurarClienteOcasional(){
+  if(!db){
+    // Sin Firebase: crear en IndexedDB si no existe
+    const local=await LocalDB.get('clientes','ocasional');
+    if(!local)await LocalDB.put('clientes',{id:'ocasional',nombre:'Cliente Ocasional',esOcasional:true,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null});
+    return;
+  }
   const ref=doc(db,'clientes','ocasional');const snap=await getDoc(ref);
   if(!snap.exists()){await setDoc(ref,{nombre:'Cliente Ocasional',esOcasional:true,consumoTotal:0,totalAbonado:0,saldo:0,ultimoAbono:null,creadoEn:new Date().toISOString()});}
 }
@@ -2009,16 +2037,14 @@ window.ejecutarConsulta=async function(){
   resultados.innerHTML='<div class="spinner"><div class="spin"></div> Consultando…</div>';
   setSync('syncing');
   try{
-    // Traer registros del rango usando índice ascendente
+    // Leer desde IndexedDB (funciona sin internet)
     let registros=[];
-    const q=query(
-      collection(db,'historial'),
-      orderBy('fecha','asc'),
-      where('fecha','>=',desde),
-      where('fecha','<=',hasta)
-    );
-    const snap=await getDocs(q);
-    registros=snap.docs.map(d=>d.data()).filter(r=>!r.esPrestamo);
+    let todos=await LocalDB.getAll('historial');
+    if(todos.length===0&&db&&navigator.onLine){
+      await sincronizarDesdeFirebase();
+      todos=await LocalDB.getAll('historial');
+    }
+    registros=todos.filter(r=>!r.esPrestamo&&(r.fecha||'')>=desde&&(r.fecha||'')<=hasta);
 
     if(tipo==='general'){
       // Agrupar por producto
@@ -2229,21 +2255,33 @@ window.confirmarBorrarVentas=async function(){
   try{
     // Borrar historial en lotes
     let total=0;
-    let snap=await getDocs(collection(db,'historial'));
-    while(!snap.empty){
-      const batch=writeBatch(db);
-      snap.docs.slice(0,400).forEach(d=>batch.delete(d.ref));
-      await batch.commit();
-      total+=Math.min(snap.docs.length,400);
-      document.getElementById('progreso-sub').textContent=`${total} registros eliminados`;
-      snap=await getDocs(collection(db,'historial'));
-    }
-    // Resetear saldos de clientes
+    // Borrar historial en IndexedDB
+    const histItems=await LocalDB.getAll('historial');
+    for(const h of histItems){await LocalDB.delete('historial',h.id);}
+    total=histItems.length;
+    document.getElementById('progreso-sub').textContent=`${total} registros eliminados`;
+    // Resetear saldos en IndexedDB
     document.getElementById('progreso-texto').textContent='Reseteando saldos…';
-    const cSnap=await getDocs(collection(db,'clientes'));
-    const batch2=writeBatch(db);
-    cSnap.docs.forEach(d=>batch2.update(d.ref,{consumoTotal:0,saldo:0,totalAbonado:0}));
-    await batch2.commit();
+    const cliItems=await LocalDB.getAll('clientes');
+    for(const c of cliItems){
+      await LocalDB.put('clientes',{...c,consumoTotal:0,saldo:0,totalAbonado:0});
+    }
+    // También en Firebase si disponible
+    if(db&&navigator.onLine){
+      try{
+        let snap=await getDocs(collection(db,'historial'));
+        while(!snap.empty){
+          const batch=writeBatch(db);
+          snap.docs.slice(0,400).forEach(d=>batch.delete(d.ref));
+          await batch.commit();
+          snap=await getDocs(collection(db,'historial'));
+        }
+        const cSnap=await getDocs(collection(db,'clientes'));
+        const batch2=writeBatch(db);
+        cSnap.docs.forEach(d=>batch2.update(d.ref,{consumoTotal:0,saldo:0,totalAbonado:0}));
+        await batch2.commit();
+      }catch(e){console.warn('Firebase borrar ventas falló:',e);}
+    }
     clientesCache=[];historialCache=[];
     document.getElementById('importar-progreso').style.display='none';
     const resEl=document.getElementById('importar-resultado');
@@ -2262,19 +2300,27 @@ window.confirmarResetTotal=async function(){
   setSync('syncing');
   try{
     const colecciones=['historial','clientes','productos','hielera','abonos'];
+    // Borrar de IndexedDB primero
     for(const col of colecciones){
       document.getElementById('progreso-sub').textContent=`Borrando ${col}…`;
-      let snap=await getDocs(collection(db,col));
-      while(!snap.empty){
-        const batch=writeBatch(db);
-        snap.docs.slice(0,400).forEach(d=>batch.delete(d.ref));
-        await batch.commit();
-        snap=await getDocs(collection(db,col));
-      }
+      await LocalDB.clear(col);
     }
-    // Borrar último reporte
-    try{await deleteDoc(doc(db,'config','ultimo_reporte'));}catch(e){}
-    // Limpiar cachés
+    await LocalDB.clear('syncQueue');
+    // También en Firebase si disponible
+    if(db&&navigator.onLine){
+      try{
+        for(const col of colecciones){
+          let snap=await getDocs(collection(db,col));
+          while(!snap.empty){
+            const batch=writeBatch(db);
+            snap.docs.slice(0,400).forEach(d=>batch.delete(d.ref));
+            await batch.commit();
+            snap=await getDocs(collection(db,col));
+          }
+        }
+        try{await deleteDoc(doc(db,'config','ultimo_reporte'));}catch(e){}
+      }catch(e){console.warn('Firebase reset falló:',e);}
+    }
     productosCache=[];clientesCache=[];hieleraCache=[];historialCache=[];
     document.getElementById('importar-progreso').style.display='none';
     const resEl=document.getElementById('importar-resultado');
@@ -2433,10 +2479,13 @@ window.exportarCSV=async function(){
   if(btn){btn.disabled=true;btn.textContent='⏳ Cargando historial…';}
   setSync('syncing');
   try{
-    // Traer todo el historial ordenado por fecha
-    const q=query(collection(db,'historial'),orderBy('fecha','asc'));
-    const snap=await getDocs(q);
-    const registros=snap.docs.map(d=>d.data());
+    // Leer desde IndexedDB
+    let registros=await LocalDB.getAll('historial');
+    if(registros.length===0&&db&&navigator.onLine){
+      await sincronizarDesdeFirebase();
+      registros=await LocalDB.getAll('historial');
+    }
+    registros.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
 
     if(registros.length===0){toast('No hay registros para exportar');return;}
 
@@ -2485,7 +2534,7 @@ let syncInProgress = false;
 let lastSyncTime = 0;
 
 async function sincronizarDesdeFirebase() {
-  if (!navigator.onLine || syncInProgress) return;
+  if (!navigator.onLine || !db || syncInProgress) return;
   const ahora = Date.now();
   if (ahora - lastSyncTime < 30000) return; // No más de 1 vez cada 30s
   syncInProgress = true;
@@ -2522,7 +2571,7 @@ async function sincronizarDesdeFirebase() {
 }
 
 async function procesarColaSync() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine || !db) return;
   const cola = await LocalDB.getQueue();
   if (cola.length === 0) return;
   console.log(`📤 Procesando ${cola.length} operaciones pendientes...`);
